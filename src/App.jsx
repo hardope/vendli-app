@@ -1,0 +1,77 @@
+import './App.css';
+import { Routes, Route, Navigate, Link, useNavigate } from 'react-router-dom';
+import AuthPage from './pages/AuthPage.jsx';
+import OnboardingPage from './pages/OnboardingPage.jsx';
+import DashboardPage from './pages/DashboardPage.jsx';
+import ProductsPage from './pages/ProductsPage.jsx';
+import StorefrontSettingsPage from './pages/StorefrontSettingsPage.jsx';
+import AuthRoute from './components/AuthRoute.jsx';
+import { useAuthStore } from './store/auth.store.js';
+import { useStoreStore } from './store/store.store.js';
+import Toaster from './components/Toaster.jsx';
+
+function AppShell({ children }) {
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const signOut = useAuthStore((s) => s.signOut);
+  const clearStores = useStoreStore((s) => s.clearStores);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    signOut();
+    clearStores();
+    navigate('/auth');
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      <main className="flex-1 flex flex-col">{children}</main>
+      <Toaster />
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <AppShell>
+      <Routes>
+        <Route path="/auth" element={<AuthPage />} />
+        <Route
+          path="/onboarding"
+          element={(
+            <AuthRoute>
+              <OnboardingPage />
+            </AuthRoute>
+          )}
+        />
+        <Route
+          path="/dashboard"
+          element={(
+            <AuthRoute>
+              <DashboardPage />
+            </AuthRoute>
+          )}
+        />
+        <Route
+          path="/products"
+          element={(
+            <AuthRoute>
+              <ProductsPage />
+            </AuthRoute>
+          )}
+        />
+        <Route
+          path="/storefront-settings"
+          element={(
+            <AuthRoute>
+              <StorefrontSettingsPage />
+            </AuthRoute>
+          )}
+        />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </AppShell>
+  );
+}
+
+export default App;
