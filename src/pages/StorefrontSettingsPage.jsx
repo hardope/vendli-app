@@ -30,14 +30,8 @@ export default function StorefrontSettingsPage() {
 
   const storefrontUrl = useMemo(() => {
     if (!currentStore) return '';
-    const base = import.meta.env.VITE_STOREFRONT_APP_URL || window.location.origin;
-    try {
-      const url = new URL(base);
-      url.searchParams.set('store', currentStore.slug);
-      return url.toString();
-    } catch {
-      return `${base}?store=${encodeURIComponent(currentStore.slug)}`;
-    }
+    const base = import.meta.env.VITE_STOREFRONT_BASE_URL || window.location.host;
+    return `${currentStore.slug}.${base}`;
   }, [currentStore]);
 
   useEffect(() => {
