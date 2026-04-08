@@ -106,8 +106,18 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState(null);
-  const [form, setForm] = useState({ name: '', description: '', contactEmail: '', contactWhatsapp: '', contactLocation: '', contactAddress: '' });
+  const [form, setForm] = useState({
+    name: '',
+    description: '',
+    contactEmail: '',
+    contactWhatsappCountryCode: '234',
+    contactWhatsappLocal: '',
+    contactLocation: '',
+    contactAddress: '',
+  });
   const [profileForm, setProfileForm] = useState({ firstName: '', lastName: '' });
+  const [signupEmail, setSignupEmail] = useState('');
+  const [useSignupEmailForContact, setUseSignupEmailForContact] = useState(false);
   const [step, setStep] = useState('profile'); // profile | stores | branding | product
   const [activeStoreId, setActiveStoreId] = useState(null);
   const [brandForm, setBrandForm] = useState({ description: '', brandColor: '', brandAccentColor: '', bannerImage: '', logo: '', contactEmail: '', contactWhatsapp: '', contactLocation: '', contactAddress: '' });
@@ -155,6 +165,9 @@ export default function OnboardingPage() {
             firstName: profile.firstName ?? '',
             lastName: profile.lastName ?? '',
           });
+          if (profile.email) {
+            setSignupEmail(profile.email);
+          }
         } catch (_) {
           // ignore profile fetch errors
         }
@@ -217,15 +230,30 @@ export default function OnboardingPage() {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  const toggleUseSignupEmailForContact = () => {
+    setUseSignupEmailForContact((prev) => {
+      const next = !prev;
+      setForm((current) => ({
+        ...current,
+        contactEmail: next ? signupEmail || current.contactEmail : current.contactEmail,
+      }));
+      return next;
+    });
+  };
+
   const handleCreate = async (e) => {
     e.preventDefault();
     setCreating(true);
     try {
+      const contactWhatsapp = form.contactWhatsappLocal
+        ? `${(form.contactWhatsappCountryCode || '234').trim()}${form.contactWhatsappLocal.trim()}`
+        : undefined;
+
       const created = await createStore({
         name: form.name,
         description: form.description,
         contactEmail: form.contactEmail || undefined,
-        contactWhatsapp: form.contactWhatsapp || undefined,
+        contactWhatsapp,
         contactLocation: form.contactLocation || undefined,
         contactAddress: form.contactAddress || undefined,
       });
@@ -588,8 +616,8 @@ export default function OnboardingPage() {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1" htmlFor="contactEmail">
-                        Contact email
+                      <label className="block text-xs font-medium text-slate-600 mb-1" htmlFor="contactWhatsappLocal">
+                        Contact Email
                       </label>
                       <input
                         id="contactEmail"
@@ -597,23 +625,59 @@ export default function OnboardingPage() {
                         type="email"
                         value={form.contactEmail}
                         onChange={handleChange}
+                        disabled={useSignupEmailForContact}
                         placeholder="support@yourstore.com"
                         className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
                       />
+                      <div className="mt-1 flex items-center gap-2 text-[10px] text-slate-500">
+                        <input
+                          id="useSignupEmailForContact"
+                          type="checkbox"
+                          checked={useSignupEmailForContact}
+                          onChange={toggleUseSignupEmailForContact}
+                          className="h-3 w-3 rounded border-slate-300 text-amber-500 focus:ring-amber-400"
+                        />
+                        <label htmlFor="useSignupEmailForContact">
+                          Use my account email{signupEmail ? ` (${signupEmail})` : ''}
+                        </label>
+                      </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1" htmlFor="contactWhatsapp">
+                      <label className="block text-xs font-medium text-slate-600 mb-1" htmlFor="contactWhatsappLocal">
                         WhatsApp number
                       </label>
-                      <input
-                        id="contactWhatsapp"
-                        name="contactWhatsapp"
-                        type="text"
-                        value={form.contactWhatsapp}
-                        onChange={handleChange}
-                        placeholder="2348012345678"
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
-                      />
+                      <div className="flex gap-2">
+                        <div className="w-16">
+                          <div className="relative">
+                            <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-[11px] text-slate-500">
+                              +
+                            </span>
+                            <input
+                              id="contactWhatsappCountryCode"
+                              name="contactWhatsappCountryCode"
+                              type="text"
+                              value={form.contactWhatsappCountryCode}
+                              onChange={handleChange}
+                              placeholder="234"
+                              className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-5 pr-2 py-2 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <input
+                            id="contactWhatsappLocal"
+                            name="contactWhatsappLocal"
+                            type="text"
+                            value={form.contactWhatsappLocal}
+                            onChange={handleChange}
+                            placeholder="8012345678"
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
+                          />
+                        </div>
+                      </div>
+                      <p className="mt-1 text-[10px] text-slate-500">
+                        Buyers will message this WhatsApp number from your storefront.
+                      </p>
                     </div>
                   </div>
                   <div>

@@ -12,7 +12,7 @@ export const useStoreStore = create(
       clearStores: () => set({ stores: [], currentStoreId: null }),
     }),
     {
-      name: 'vendly-stores',
+      name: 'vendli-stores',
     },
   ),
 );

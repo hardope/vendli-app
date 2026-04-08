@@ -18,6 +18,12 @@ export default function StorefrontSettingsPage() {
     brandAccentColor: '',
     bannerImage: '',
     logo: '',
+    contactEmail: '',
+    contactWhatsapp: '',
+    contactWhatsappCountryCode: '234',
+    contactWhatsappLocal: '',
+    contactLocation: '',
+    contactAddress: '',
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -42,6 +48,19 @@ export default function StorefrontSettingsPage() {
 
   useEffect(() => {
     if (!currentStore) return;
+    const existingWhatsapp = currentStore.contactWhatsapp || '';
+    let contactWhatsappCountryCode = '234';
+    let contactWhatsappLocal = '';
+
+    if (existingWhatsapp) {
+      if (existingWhatsapp.startsWith('234')) {
+        contactWhatsappCountryCode = '234';
+        contactWhatsappLocal = existingWhatsapp.slice(3);
+      } else {
+        contactWhatsappLocal = existingWhatsapp;
+      }
+    }
+
     setForm({
       name: currentStore.name || '',
       description: currentStore.description || '',
@@ -49,6 +68,12 @@ export default function StorefrontSettingsPage() {
       brandAccentColor: currentStore.brandAccentColor || '',
       bannerImage: currentStore.bannerImage || '',
       logo: currentStore.logo || '',
+      contactEmail: currentStore.contactEmail || '',
+      contactWhatsapp: currentStore.contactWhatsapp || '',
+      contactWhatsappCountryCode,
+      contactWhatsappLocal,
+      contactLocation: currentStore.contactLocation || '',
+      contactAddress: currentStore.contactAddress || '',
     });
   }, [currentStore]);
 
@@ -95,6 +120,10 @@ export default function StorefrontSettingsPage() {
     if (!currentStore) return;
     setSaving(true);
     try {
+      const contactWhatsapp = form.contactWhatsappLocal
+        ? `${(form.contactWhatsappCountryCode || '234').trim()}${form.contactWhatsappLocal.trim()}`
+        : undefined;
+
       const updated = await updateStore(currentStore.id, {
         name: form.name || undefined,
         description: form.description || undefined,
@@ -102,6 +131,10 @@ export default function StorefrontSettingsPage() {
         brandAccentColor: form.brandAccentColor || undefined,
         bannerImage: form.bannerImage || undefined,
         logo: form.logo || undefined,
+        contactEmail: form.contactEmail || undefined,
+        contactWhatsapp,
+        contactLocation: form.contactLocation || undefined,
+        contactAddress: form.contactAddress || undefined,
       });
       const nextStores = stores.map((s) => (s.id === updated.id ? updated : s));
       setStores(nextStores);
@@ -236,6 +269,97 @@ export default function StorefrontSettingsPage() {
                         <input type="file" accept="image/*" className="hidden" onChange={handleBannerUpload} />
                       </label>
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
+                <p className="text-xs font-medium text-slate-600">Contact details</p>
+                <p className="text-[11px] text-slate-500 mb-2">
+                  These details show on your public storefront so buyers can reach you.
+                </p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1" htmlFor="contactEmail">
+                      Contact email
+                    </label>
+                    <input
+                      id="contactEmail"
+                      name="contactEmail"
+                      type="email"
+                      value={form.contactEmail}
+                      onChange={handleChange}
+                      placeholder="support@yourstore.com"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1" htmlFor="contactWhatsapp">
+                      WhatsApp number
+                    </label>
+                    <div className="flex gap-2">
+                      <div className="w-16">
+                        <div className="relative">
+                          <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-[11px] text-slate-500">
+                            +
+                          </span>
+                          <input
+                            id="contactWhatsappCountryCode"
+                            name="contactWhatsappCountryCode"
+                            type="text"
+                            value={form.contactWhatsappCountryCode}
+                            onChange={handleChange}
+                            placeholder="234"
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-5 pr-2 py-2 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
+                          />
+                        </div>
+                        <p className="mt-1 text-[10px] text-slate-500">Code</p>
+                      </div>
+                      <div className="flex-1">
+                        <input
+                          id="contactWhatsappLocal"
+                          name="contactWhatsappLocal"
+                          type="text"
+                          value={form.contactWhatsappLocal}
+                          onChange={handleChange}
+                          placeholder="8012345678"
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
+                        />
+                      </div>
+                    </div>
+                    <p className="mt-1 text-[10px] text-slate-500">
+                      This is what buyers see on your live storefront.
+                    </p>
+                  </div>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1" htmlFor="contactLocation">
+                      Location
+                    </label>
+                    <input
+                      id="contactLocation"
+                      name="contactLocation"
+                      type="text"
+                      value={form.contactLocation}
+                      onChange={handleChange}
+                      placeholder="Lagos, Nigeria"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1" htmlFor="contactAddress">
+                      Address
+                    </label>
+                    <textarea
+                      id="contactAddress"
+                      name="contactAddress"
+                      rows={2}
+                      value={form.contactAddress}
+                      onChange={handleChange}
+                      placeholder="Street, area, city"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
+                    />
                   </div>
                 </div>
               </div>

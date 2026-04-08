@@ -7,6 +7,11 @@ export async function fetchProducts(storeId, params = {}) {
   return data;
 }
 
+export async function fetchProduct(storeId, id) {
+  const { data } = await api.get(`${STORES_BASE}/${storeId}/products/${id}`);
+  return data;
+}
+
 export async function createProduct(storeId, payload) {
   const { data } = await api.post(`${STORES_BASE}/${storeId}/products`, payload);
   return data;

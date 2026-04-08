@@ -5,6 +5,12 @@ import OnboardingPage from './pages/OnboardingPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import ProductsPage from './pages/ProductsPage.jsx';
 import StorefrontSettingsPage from './pages/StorefrontSettingsPage.jsx';
+import EditProductPage from './pages/EditProductPage.jsx';
+import WalletPage from './pages/WalletPage.jsx';
+import OrdersPage from './pages/OrdersPage.jsx';
+import OrderDetailPage from './pages/OrderDetailPage.jsx';
+import CustomersPage from './pages/CustomersPage.jsx';
+import CustomerDetailPage from './pages/CustomerDetailPage.jsx';
 import AuthRoute from './components/AuthRoute.jsx';
 import { useAuthStore } from './store/auth.store.js';
 import { useStoreStore } from './store/store.store.js';
@@ -52,10 +58,58 @@ function App() {
           )}
         />
         <Route
+          path="/orders"
+          element={(
+            <AuthRoute>
+              <OrdersPage />
+            </AuthRoute>
+          )}
+        />
+        <Route
+          path="/orders/:orderId"
+          element={(
+            <AuthRoute>
+              <OrderDetailPage />
+            </AuthRoute>
+          )}
+        />
+        <Route
+          path="/wallet"
+          element={(
+            <AuthRoute>
+              <WalletPage />
+            </AuthRoute>
+          )}
+        />
+        <Route
           path="/products"
           element={(
             <AuthRoute>
               <ProductsPage />
+            </AuthRoute>
+          )}
+        />
+        <Route
+          path="/products/:productId/edit"
+          element={(
+            <AuthRoute>
+              <EditProductPage />
+            </AuthRoute>
+          )}
+        />
+        <Route
+          path="/customers"
+          element={(
+            <AuthRoute>
+              <CustomersPage />
+            </AuthRoute>
+          )}
+        />
+        <Route
+          path="/customers/:customerId"
+          element={(
+            <AuthRoute>
+              <CustomerDetailPage />
             </AuthRoute>
           )}
         />

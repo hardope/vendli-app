@@ -163,7 +163,7 @@ export default function AuthPage() {
             </span>
           </h1>
           <p className="mt-4 text-sm sm:text-base text-slate-600 max-w-md">
-            One login for every brand you run on Vendly. Switch stores in a click, keep orders and products in sync.
+            One login for every brand you run on Vendli. Switch stores in a click, keep orders and products in sync.
           </p>
         </div>
 
@@ -385,7 +385,7 @@ export default function AuthPage() {
 
               {mode === 'signin' && (
                 <p className="text-[11px] text-slate-500 text-center mt-2">
-                  New to Vendly?{' '}
+                  New to Vendli?{' '}
                   <button
                     type="button"
                     onClick={() => setMode('signup')}

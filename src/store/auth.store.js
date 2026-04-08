@@ -31,7 +31,7 @@ export const useAuthStore = create(
       _setHydrated: () => set({ hasHydrated: true }),
     }),
     {
-      name: 'vendly-auth',
+      name: 'vendli-auth',
       partialize: (state) => ({
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
