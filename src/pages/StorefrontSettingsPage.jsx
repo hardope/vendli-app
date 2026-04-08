@@ -40,6 +40,18 @@ export default function StorefrontSettingsPage() {
     return `${currentStore.slug}.${base}`;
   }, [currentStore]);
 
+  const handleCopyStorefrontUrl = async () => {
+    if (!storefrontUrl) return;
+    try {
+      await navigator.clipboard.writeText(storefrontUrl);
+      Notify.success('Store link copied to clipboard');
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(err);
+      Notify.error('We could not copy your store link. Please try again.');
+    }
+  };
+
   useEffect(() => {
     if (!currentStore && stores.length > 0 && !currentStoreId) {
       setCurrentStoreId(stores[0].id);
@@ -410,7 +422,19 @@ export default function StorefrontSettingsPage() {
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-slate-900 truncate">{form.name || currentStore.name}</p>
-                    <p className="text-[11px] text-slate-500 truncate">{storefrontUrl}</p>
+                    <div className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[11px] text-slate-600 max-w-full">
+                      <span className="truncate max-w-[9rem]">{storefrontUrl}</span>
+                      {storefrontUrl && (
+                        <button
+                          type="button"
+                          onClick={handleCopyStorefrontUrl}
+                          className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-200 bg-white text-[10px] text-slate-500 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 flex-shrink-0"
+                          aria-label="Copy store link"
+                        >
+                          ⧉
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="p-4 space-y-2">

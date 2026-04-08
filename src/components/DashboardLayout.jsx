@@ -214,6 +214,26 @@ export default function DashboardLayout({ children }) {
                 </button>
               )}
             </div>
+            {currentStore && storefrontUrl && (
+              <div className="px-4 pb-3 border-b border-slate-100">
+                <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-3 py-1 text-[11px] text-slate-700 max-w-full">
+                  <span className="font-medium whitespace-nowrap mr-1">Your store link</span>
+                  <span className="truncate max-w-[9rem]">{storefrontUrl}</span>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await handleCopyStorefrontUrl();
+                      const mod = await import('../components/Notify.js');
+                      mod.default.success('Store link copied to clipboard');
+                    }}
+                    className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 bg-white text-[11px] text-slate-500 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 flex-shrink-0"
+                    aria-label="Copy store link"
+                  >
+                    <Copy className="h-3 w-3" />
+                  </button>
+                </div>
+              </div>
+            )}
             <nav className="flex-1 px-2 py-4 space-y-4 text-sm overflow-y-auto">
               <div className="space-y-1">
                 <p className="px-3 mb-1 text-[10px] font-semibold tracking-wide text-slate-400 uppercase">Store</p>
@@ -419,7 +439,7 @@ export default function DashboardLayout({ children }) {
                 <span className="text-base font-semibold tracking-tight text-slate-900">Vendli</span>
               </Link>
             </div>
-            <div className="flex-1 flex flex-wrap items-center gap-3 min-w-0">
+            <div className="flex-1 hidden md:flex flex-wrap items-center gap-3 min-w-0">
               {currentStore && (
                 <div className="flex items-center gap-2 min-w-0">
                   <div className="px-2 py-1 rounded-full bg-slate-100 border border-slate-200 text-[11px] text-slate-700 flex items-center gap-1 min-w-0">
