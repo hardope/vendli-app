@@ -81,7 +81,7 @@ export default function AuthPage() {
     e.preventDefault();
     if (signupStep === 'credentials') {
       if (!acceptedTerms) {
-        Notify.error('Please accept the Terms & Conditions and Privacy Policy to continue.');
+        Notify.error('Please accept the Terms & Conditions, Privacy Policy and Pricing to continue.');
         return;
       }
       setLoading(true);
@@ -250,37 +250,6 @@ export default function AuthPage() {
                       </button>
                     </div>
                   </div>
-                  <div className="flex items-start gap-2 pt-1 text-[11px] text-slate-500">
-                    <input
-                      id="accept-terms"
-                      type="checkbox"
-                      className="mt-0.5 h-3.5 w-3.5 rounded border-slate-300 text-amber-500 focus:ring-amber-400"
-                      checked={acceptedTerms}
-                      onChange={(event) => setAcceptedTerms(event.target.checked)}
-                      required
-                    />
-                    <label htmlFor="accept-terms" className="leading-snug">
-                      By creating an account you agree to Vendli&apos;s{' '}
-                      <a
-                        href={`${LANDING_URL}/#terms`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-amber-700 hover:underline"
-                      >
-                        Terms &amp; Conditions
-                      </a>{' '}
-                      and{' '}
-                      <a
-                        href={`${LANDING_URL}/#privacy`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-amber-700 hover:underline"
-                      >
-                        Privacy Policy
-                      </a>
-                      .
-                    </label>
-                  </div>
                 </>
               )}
 
@@ -330,6 +299,46 @@ export default function AuthPage() {
                         {showSignupPassword ? 'Hide' : 'Show'}
                       </button>
                     </div>
+                  </div>
+                  <div className="flex items-start gap-2 pt-1 text-[11px] text-slate-500">
+                    <input
+                      id="accept-terms"
+                      type="checkbox"
+                      className="mt-0.5 h-3.5 w-3.5 rounded border-slate-300 text-amber-500 focus:ring-amber-400"
+                      checked={acceptedTerms}
+                      onChange={(event) => setAcceptedTerms(event.target.checked)}
+                      required
+                    />
+                    <label htmlFor="accept-terms" className="leading-snug">
+                      By creating an account you agree to Vendli&apos;s{' '}
+                      <a
+                        href={`${LANDING_URL}/#terms`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-amber-700 hover:underline"
+                      >
+                        Terms &amp; Conditions
+                      </a>
+                      ,{' '}
+                      <a
+                        href={`${LANDING_URL}/#privacy`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-amber-700 hover:underline"
+                      >
+                        Privacy Policy
+                      </a>{' '}
+                      and{' '}
+                      <a
+                        href={`${LANDING_URL}/#pricing`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-amber-700 hover:underline"
+                      >
+                        Pricing
+                      </a>
+                      .
+                    </label>
                   </div>
                 </>
               )}
