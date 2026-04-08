@@ -6,6 +6,7 @@ import DashboardPage from './pages/DashboardPage.jsx';
 import ProductsPage from './pages/ProductsPage.jsx';
 import StorefrontSettingsPage from './pages/StorefrontSettingsPage.jsx';
 import EditProductPage from './pages/EditProductPage.jsx';
+import NewProductPage from './pages/NewProductPage.jsx';
 import WalletPage from './pages/WalletPage.jsx';
 import OrdersPage from './pages/OrdersPage.jsx';
 import OrderDetailPage from './pages/OrderDetailPage.jsx';
@@ -86,6 +87,14 @@ function App() {
           element={(
             <AuthRoute>
               <ProductsPage />
+            </AuthRoute>
+          )}
+        />
+        <Route
+          path="/products/new"
+          element={(
+            <AuthRoute>
+              <NewProductPage />
             </AuthRoute>
           )}
         />
