@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login, register, getCurrentUser, verifyEmailWithOtp } from '../services/auth.service.js';
 import { updateProfile } from '../services/profile.service.js';
+import { LANDING_URL } from '../config.js';
 import Notify from '../components/Notify.js';
 import { useAuthStore } from '../store/auth.store.js';
 import { useStoreStore } from '../store/store.store.js';
@@ -15,6 +16,7 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [showSigninPassword, setShowSigninPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const navigate = useNavigate();
   const { setTokens, setUser, redirectPath, setRedirectPath } = useAuthStore();
   const clearStores = useStoreStore((s) => s.clearStores);
@@ -78,6 +80,10 @@ export default function AuthPage() {
   const handleSignup = async (e) => {
     e.preventDefault();
     if (signupStep === 'credentials') {
+      if (!acceptedTerms) {
+        Notify.error('Please accept the Terms & Conditions and Privacy Policy to continue.');
+        return;
+      }
       setLoading(true);
       try {
         await register({ email: form.email, password: form.password });
@@ -243,6 +249,37 @@ export default function AuthPage() {
                         {showSigninPassword ? 'Hide' : 'Show'}
                       </button>
                     </div>
+                  </div>
+                  <div className="flex items-start gap-2 pt-1 text-[11px] text-slate-500">
+                    <input
+                      id="accept-terms"
+                      type="checkbox"
+                      className="mt-0.5 h-3.5 w-3.5 rounded border-slate-300 text-amber-500 focus:ring-amber-400"
+                      checked={acceptedTerms}
+                      onChange={(event) => setAcceptedTerms(event.target.checked)}
+                      required
+                    />
+                    <label htmlFor="accept-terms" className="leading-snug">
+                      By creating an account you agree to Vendli&apos;s{' '}
+                      <a
+                        href={`${LANDING_URL}/#terms`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-amber-700 hover:underline"
+                      >
+                        Terms &amp; Conditions
+                      </a>{' '}
+                      and{' '}
+                      <a
+                        href={`${LANDING_URL}/#privacy`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-amber-700 hover:underline"
+                      >
+                        Privacy Policy
+                      </a>
+                      .
+                    </label>
                   </div>
                 </>
               )}
