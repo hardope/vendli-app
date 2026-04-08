@@ -141,7 +141,7 @@ export default function OnboardingPage() {
   const productImageInputRef = useRef(null);
   const productGalleryInputRef = useRef(null);
   const navigate = useNavigate();
-  const { stores, setStores, setCurrentStoreId } = useStoreStore();
+  const { stores, setStores, setCurrentStoreId, currentStoreId } = useStoreStore();
 
   const activeStore = useMemo(() => stores.find((s) => s.id === activeStoreId) || null, [stores, activeStoreId]);
 
@@ -176,12 +176,22 @@ export default function OnboardingPage() {
         if (!cancelled) {
           const items = Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : [];
           setStores(items);
+
           // Decide initial step: profile first if pending, otherwise stores/branding/product based on remaining tasks
           if (filteredPending.includes('COMPLETE_PROFILE')) {
             setStep('profile');
           } else if (filteredPending.includes('CREATE_STORE')) {
             setStep('stores');
           } else if (filteredPending.includes('ADD_FIRST_PRODUCT')) {
+            // When the remaining task is to add a first product, make sure
+            // we have an active store selected so the product form can show.
+            const defaultStore =
+              items.find((s) => s.id === currentStoreId) || (items.length > 0 ? items[0] : null);
+
+            if (defaultStore) {
+              setCurrentStoreId(defaultStore.id);
+              setActiveStoreId(defaultStore.id);
+            }
             setStep('product');
           } else {
             setStep('stores');
@@ -202,7 +212,7 @@ export default function OnboardingPage() {
     return () => {
       cancelled = true;
     };
-  }, [setStores]);
+  }, [setStores, currentStoreId, setCurrentStoreId]);
 
   const handleProfileChange = (e) => {
     const { name, value } = e.target;
