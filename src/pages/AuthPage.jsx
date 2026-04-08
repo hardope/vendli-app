@@ -71,6 +71,27 @@ export default function AuthPage() {
       navigate(target);
     } catch (error) {
       console.error(error);
+      const response = error?.response;
+      const rawMessage = response?.data?.message;
+
+      if (response?.status === 401 && typeof rawMessage === 'string') {
+        try {
+          const parsed = JSON.parse(rawMessage);
+          if (parsed?.code === 'EMAIL_NOT_VERIFIED') {
+            setMode('signup');
+            setSignupStep('otp');
+            setForm((prev) => ({ ...prev, email: parsed.email || prev.email }));
+            Notify.info(
+              parsed.message ||
+                'Your account is not verified yet. We just sent you a new 6-digit code to your email.',
+            );
+            return;
+          }
+        } catch {
+          // fall through to generic error
+        }
+      }
+
       Notify.error('Could not sign you in. Please check your details or try again later.');
     } finally {
       setLoading(false);
