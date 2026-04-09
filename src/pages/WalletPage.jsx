@@ -63,6 +63,18 @@ export default function WalletPage() {
             <p className="mt-1 text-[11px] text-slate-500">
               Your Vendli wallet is global across all your stores.
             </p>
+            <p className="mt-1 text-[11px] text-slate-500">
+              Vendli charges a transparent platform fee on each successful order. You can always review the exact percentage and examples on the{' '}
+              <a
+                href="https://www.vendli.ng#pricing"
+                target="_blank"
+                rel="noreferrer"
+                className="underline-offset-2 hover:underline text-slate-600"
+              >
+                Pricing page
+              </a>
+              .
+            </p>
           </div>
         </div>
 
