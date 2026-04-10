@@ -134,6 +134,8 @@ export default function OnboardingPage() {
   const [bannerDragOver, setBannerDragOver] = useState(false);
   const [productForm, setProductForm] = useState({ name: '', description: '', price: '', stock: '', image: '', gallery: [] });
   const [savingProduct, setSavingProduct] = useState(false);
+  const [uploadingProductImage, setUploadingProductImage] = useState(false);
+  const [uploadingProductGallery, setUploadingProductGallery] = useState(false);
   const [productImageDragOver, setProductImageDragOver] = useState(false);
   const [productGalleryDragOver, setProductGalleryDragOver] = useState(false);
   const logoInputRef = useRef(null);
@@ -402,12 +404,15 @@ export default function OnboardingPage() {
   const processProductMainImageFile = async (file) => {
     if (!file || !activeStoreId) return;
     try {
+      setUploadingProductImage(true);
       const uploaded = await uploadFile(file);
       setProductForm((prev) => ({ ...prev, image: uploaded.url }));
       Notify.success('Product image uploaded.');
     } catch (err) {
       console.error(err);
       Notify.error('We could not upload your product image. Please try again.');
+    } finally {
+      setUploadingProductImage(false);
     }
   };
 
@@ -420,12 +425,15 @@ export default function OnboardingPage() {
   const processProductGalleryFile = async (file) => {
     if (!file || !activeStoreId) return;
     try {
+      setUploadingProductGallery(true);
       const uploaded = await uploadFile(file);
       setProductForm((prev) => ({ ...prev, gallery: [...prev.gallery, uploaded.url] }));
       Notify.success('Gallery image added.');
     } catch (err) {
       console.error(err);
       Notify.error('We could not upload that image. Please try again.');
+    } finally {
+      setUploadingProductGallery(false);
     }
   };
 
@@ -1278,6 +1286,9 @@ export default function OnboardingPage() {
                         onChange={handleProductMainImageUpload}
                         className="hidden"
                       />
+                      {uploadingProductImage && (
+                        <p className="mt-1 text-[11px] text-slate-500 animate-pulse">Uploading image…</p>
+                      )}
                     </div>
                     {productForm.image && (
                       <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 overflow-hidden inline-block">
@@ -1327,6 +1338,9 @@ export default function OnboardingPage() {
                         onChange={handleProductGalleryUpload}
                         className="hidden"
                       />
+                      {uploadingProductGallery && (
+                        <p className="mt-1 text-[11px] text-slate-500 animate-pulse">Uploading images…</p>
+                      )}
                     </div>
                     {productForm.gallery && productForm.gallery.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-2 max-h-24 overflow-y-auto">

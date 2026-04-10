@@ -278,10 +278,14 @@ export default function NewProductPage() {
                   className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                   onChange={handleMainImageUpload}
                 />
+                {uploadingMain && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-slate-900/5">
+                    <p className="rounded-full bg-white/90 px-3 py-1 text-[11px] text-slate-700 shadow-sm animate-pulse">
+                      Uploading image…
+                    </p>
+                  </div>
+                )}
               </div>
-              {uploadingMain && (
-                <p className="mt-1 text-[11px] text-slate-500">Uploading image…</p>
-              )}
             </div>
 
             <div>
@@ -311,10 +315,14 @@ export default function NewProductPage() {
                   className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                   onChange={handleGalleryUpload}
                 />
+                {uploadingGallery && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-slate-900/5">
+                    <p className="rounded-full bg-white/90 px-3 py-1 text-[11px] text-slate-700 shadow-sm animate-pulse">
+                      Uploading images…
+                    </p>
+                  </div>
+                )}
               </div>
-              {uploadingGallery && (
-                <p className="mt-1 text-[11px] text-slate-500">Uploading image…</p>
-              )}
             </div>
           </div>
         </div>

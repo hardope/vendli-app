@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '../components/DashboardLayout.jsx';
 import { useStoreStore } from '../store/store.store.js';
-import { updateStore } from '../services/store.service.js';
+import { updateStore, activateStore, deactivateStore } from '../services/store.service.js';
 import { uploadFile } from '../services/files.service.js';
 import Notify from '../components/Notify.js';
 import BrandColorPicker from '../components/BrandColorPicker.jsx';
@@ -28,6 +28,10 @@ export default function StorefrontSettingsPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [togglingStatus, setTogglingStatus] = useState(false);
+  const [confirmingStatus, setConfirmingStatus] = useState(null); // 'activate' | 'deactivate' | null
 
   const currentStore = useMemo(
     () => stores.find((s) => s.id === currentStoreId) || stores[0] || null,
@@ -99,6 +103,7 @@ export default function StorefrontSettingsPage() {
     if (!file || !currentStore) return;
     setLoading(true);
     try {
+      setUploadingLogo(true);
       const uploaded = await uploadFile(file);
       setForm((prev) => ({ ...prev, logo: uploaded.url }));
       Notify.success('Logo uploaded.');
@@ -107,6 +112,7 @@ export default function StorefrontSettingsPage() {
       console.error(err);
       Notify.error('We could not upload your logo. Please try again.');
     } finally {
+      setUploadingLogo(false);
       setLoading(false);
     }
   };
@@ -116,6 +122,7 @@ export default function StorefrontSettingsPage() {
     if (!file || !currentStore) return;
     setLoading(true);
     try {
+      setUploadingBanner(true);
       const uploaded = await uploadFile(file);
       setForm((prev) => ({ ...prev, bannerImage: uploaded.url }));
       Notify.success('Banner image uploaded.');
@@ -124,6 +131,7 @@ export default function StorefrontSettingsPage() {
       console.error(err);
       Notify.error('We could not upload your banner. Please try again.');
     } finally {
+      setUploadingBanner(false);
       setLoading(false);
     }
   };
@@ -177,6 +185,35 @@ export default function StorefrontSettingsPage() {
     setConfirming(false);
   };
 
+  const handleRequestToggleStatus = (action) => {
+    setConfirmingStatus(action);
+  };
+
+  const handleCancelToggleStatus = () => {
+    setConfirmingStatus(null);
+  };
+
+  const handleConfirmToggleStatus = async () => {
+    if (!currentStore || !confirmingStatus) return;
+    const nextActive = confirmingStatus === 'activate';
+    try {
+      setTogglingStatus(true);
+      const updated = nextActive
+        ? await activateStore(currentStore.id)
+        : await deactivateStore(currentStore.id);
+      const nextStores = stores.map((s) => (s.id === updated.id ? updated : s));
+      setStores(nextStores);
+      Notify.success(nextActive ? 'Store activated. Buyers can see your storefront again.' : 'Store deactivated. Buyers can no longer access this storefront.');
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(err);
+      Notify.error('We could not update your store status. Please try again.');
+    } finally {
+      setTogglingStatus(false);
+      setConfirmingStatus(null);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="max-w-3xl mx-auto space-y-6">
@@ -199,6 +236,69 @@ export default function StorefrontSettingsPage() {
           <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)] items-start">
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
+                <div className="flex items-center justify-between gap-3 text-[11px]">
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] uppercase tracking-wide text-slate-500">Store status</p>
+                    <span
+                      className={
+                        currentStore.isActive !== false
+                          ? 'inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'inline-flex items-center px-2 py-0.5 rounded-full bg-slate-50 text-slate-600 border border-slate-200'
+                      }
+                    >
+                      {currentStore.isActive !== false ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    {confirmingStatus && (
+                      <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[10px] text-amber-900 max-w-xs">
+                        <p className="font-semibold mb-1">
+                          {confirmingStatus === 'deactivate' ? 'Deactivate store?' : 'Activate store?'}
+                        </p>
+                        <p className="mb-2">
+                          {confirmingStatus === 'deactivate'
+                            ? 'Buyers will no longer be able to view or order from this storefront until you activate it again.'
+                            : 'This store will become visible to buyers again on your storefront URL.'}
+                        </p>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={handleCancelToggleStatus}
+                            className="text-[10px] text-amber-700 hover:text-amber-900"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleConfirmToggleStatus}
+                            disabled={togglingStatus}
+                            className="inline-flex items-center justify-center rounded-full bg-red-500 text-white px-3 py-1 text-[10px] font-medium hover:bg-red-600 disabled:opacity-60"
+                          >
+                            {togglingStatus
+                              ? 'Updating…'
+                              : confirmingStatus === 'deactivate'
+                                ? 'Yes, deactivate'
+                                : 'Yes, activate'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {!confirmingStatus && (
+                      <button
+                        type="button"
+                        onClick={() => handleRequestToggleStatus(currentStore.isActive !== false ? 'deactivate' : 'activate')}
+                        disabled={togglingStatus}
+                        className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-medium hover:border-amber-400 hover:bg-amber-50 disabled:opacity-60"
+                      >
+                        {togglingStatus
+                          ? 'Updating…'
+                          : currentStore.isActive !== false
+                            ? 'Deactivate store'
+                            : 'Activate store'}
+                      </button>
+                    )}
+                  </div>
+                </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1" htmlFor="name">
@@ -262,8 +362,17 @@ export default function StorefrontSettingsPage() {
                       </div>
                       <label className="text-[11px] text-amber-700 cursor-pointer inline-flex items-center gap-1">
                         <span>Upload logo</span>
-                        <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleLogoUpload}
+                          disabled={uploadingLogo}
+                        />
                       </label>
+                      {uploadingLogo && (
+                        <p className="text-[10px] text-slate-500 animate-pulse">Uploading logo…</p>
+                      )}
                     </div>
                   </div>
                   <div>
@@ -278,8 +387,17 @@ export default function StorefrontSettingsPage() {
                       </div>
                       <label className="text-[11px] text-amber-700 cursor-pointer inline-flex items-center gap-1">
                         <span>Upload banner</span>
-                        <input type="file" accept="image/*" className="hidden" onChange={handleBannerUpload} />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleBannerUpload}
+                          disabled={uploadingBanner}
+                        />
                       </label>
+                      {uploadingBanner && (
+                        <p className="text-[10px] text-slate-500 animate-pulse">Uploading banner…</p>
+                      )}
                     </div>
                   </div>
                 </div>

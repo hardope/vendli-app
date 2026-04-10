@@ -16,3 +16,13 @@ export async function updateStore(id, payload) {
   const { data } = await api.patch(`${STORES_BASE}/${id}`, payload);
   return data;
 }
+
+export async function activateStore(id) {
+  const { data } = await api.patch(`${STORES_BASE}/${id}/activate`);
+  return data;
+}
+
+export async function deactivateStore(id) {
+  const { data } = await api.patch(`${STORES_BASE}/${id}/deactivate`);
+  return data;
+}

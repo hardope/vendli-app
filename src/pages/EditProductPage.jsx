@@ -279,7 +279,9 @@ export default function EditProductPage() {
                   }}
                 >
                   <p className="mb-1">Drop a main image here, or click to browse.</p>
-                  {uploadingMain && <p className="text-[11px] text-slate-500">Uploading…</p>}
+                  {uploadingMain && (
+                    <p className="mt-1 text-[11px] text-slate-500 animate-pulse">Uploading image…</p>
+                  )}
                   <input
                     ref={mainInputRef}
                     type="file"
@@ -320,7 +322,9 @@ export default function EditProductPage() {
                   }}
                 >
                   <p className="mb-1">Drop gallery images here, or click to browse.</p>
-                  {uploadingGallery && <p className="text-[11px] text-slate-500">Uploading…</p>}
+                  {uploadingGallery && (
+                    <p className="mt-1 text-[11px] text-slate-500 animate-pulse">Uploading images…</p>
+                  )}
                   <input
                     ref={galleryInputRef}
                     type="file"
