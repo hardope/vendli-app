@@ -430,9 +430,35 @@ export default function OnboardingPage() {
   };
 
   const handleProductGalleryUpload = async (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    await processProductGalleryFile(file);
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const MAX_GALLERY_IMAGES = 5;
+    const existingCount = productForm.gallery ? productForm.gallery.length : 0;
+    const availableSlots = MAX_GALLERY_IMAGES - existingCount;
+
+    if (availableSlots <= 0) {
+      Notify.error(`You can only add up to ${MAX_GALLERY_IMAGES} gallery images.`);
+      return;
+    }
+
+    const filesArray = Array.from(files).slice(0, availableSlots);
+
+    if (files.length > availableSlots) {
+      Notify.error(`You can only add up to ${MAX_GALLERY_IMAGES} gallery images per product.`);
+    }
+
+    // Upload sequentially to keep UI and state simple
+    // eslint-disable-next-line no-restricted-syntax
+    for (const file of filesArray) {
+      // eslint-disable-next-line no-await-in-loop
+      await processProductGalleryFile(file);
+    }
+
+    // Reset input so the same files can be re-selected if needed
+    if (productGalleryInputRef.current) {
+      productGalleryInputRef.current.value = '';
+    }
   };
 
   const handleCreateProduct = async (e) => {

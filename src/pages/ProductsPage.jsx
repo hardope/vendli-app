@@ -5,10 +5,11 @@ import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../components/DashboardLayout.jsx';
 import { useStoreStore } from '../store/store.store.js';
 import { fetchProducts, updateProductStatus } from '../services/product.service.js';
+import Notify from '../components/Notify.js';
 
 export default function ProductsPage() {
   const navigate = useNavigate();
-  const { currentStoreId } = useStoreStore();
+  const { currentStoreId, stores } = useStoreStore();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -18,6 +19,11 @@ export default function ProductsPage() {
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
+
+  const currentStore = useMemo(
+    () => stores.find((s) => s.id === currentStoreId) || null,
+    [stores, currentStoreId],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -92,6 +98,35 @@ export default function ProductsPage() {
     setSearchInput('');
     setSearch('');
     setPage(1);
+  };
+
+  const buildProductShareUrl = (product) => {
+    if (!currentStore || !product?.slug) return '';
+    const baseHost = import.meta.env.VITE_STOREFRONT_BASE_URL || window.location.host;
+    if (!baseHost) return '';
+
+    const protocol = typeof window !== 'undefined' && window.location?.protocol
+      ? window.location.protocol
+      : 'https:';
+
+    return `${protocol}//${currentStore.slug}.${baseHost}/product/${encodeURIComponent(product.slug)}`;
+  };
+
+  const handleShareProduct = async (event, product) => {
+    event.stopPropagation();
+    const url = buildProductShareUrl(product);
+    if (!url) {
+      Notify.error('We could not determine the product link yet.');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      Notify.success('Product link copied to clipboard');
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(err);
+      Notify.error('We could not copy the product link. Please try again.');
+    }
   };
 
   return (
@@ -292,6 +327,13 @@ export default function ProductsPage() {
                               className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-2.5 py-1 hover:border-amber-400 hover:text-amber-800 hover:bg-amber-50"
                             >
                               {product.status === 'PUBLISHED' ? 'Make private' : 'Make public'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => handleShareProduct(e, product)}
+                              className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-2.5 py-1 hover:border-emerald-300 hover:text-emerald-800 hover:bg-emerald-50"
+                            >
+                              Share
                             </button>
                           </div>
                         </div>

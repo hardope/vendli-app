@@ -23,6 +23,8 @@ export default function NewProductPage() {
   const [uploadingMain, setUploadingMain] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
 
+  const MAX_GALLERY_IMAGES = 5;
+
   if (!currentStoreId) {
     return (
       <DashboardLayout>
@@ -116,10 +118,19 @@ export default function NewProductPage() {
 
   const processGalleryFile = async (file) => {
     if (!file) return;
+    if (gallery.length >= MAX_GALLERY_IMAGES) {
+      Notify.error(`You can only add up to ${MAX_GALLERY_IMAGES} gallery images.`);
+      return;
+    }
     try {
       setUploadingGallery(true);
       const uploaded = await uploadFile(file);
-      setGallery((prev) => [...prev, uploaded.url]);
+      setGallery((prev) => {
+        if (prev.length >= MAX_GALLERY_IMAGES) {
+          return prev;
+        }
+        return [...prev, uploaded.url];
+      });
       Notify.success('Gallery image added.');
     } catch (err) {
       // eslint-disable-next-line no-console
@@ -131,9 +142,33 @@ export default function NewProductPage() {
   };
 
   const handleGalleryUpload = async (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    await processGalleryFile(file);
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const existingCount = gallery.length;
+    const availableSlots = MAX_GALLERY_IMAGES - existingCount;
+
+    if (availableSlots <= 0) {
+      Notify.error(`You can only add up to ${MAX_GALLERY_IMAGES} gallery images.`);
+      return;
+    }
+
+    const filesArray = Array.from(files).slice(0, availableSlots);
+
+    if (files.length > availableSlots) {
+      Notify.error(`You can only add up to ${MAX_GALLERY_IMAGES} gallery images per product.`);
+    }
+
+    // Upload sequentially to keep UI and state simple
+    // eslint-disable-next-line no-restricted-syntax
+    for (const file of filesArray) {
+      // eslint-disable-next-line no-await-in-loop
+      await processGalleryFile(file);
+    }
+
+    // Reset input so the same files can be re-selected if needed
+    // eslint-disable-next-line no-param-reassign
+    e.target.value = '';
   };
 
   const handleRemoveGalleryImage = (url) => {
@@ -272,6 +307,7 @@ export default function NewProductPage() {
                 <input
                   type="file"
                   accept="image/*"
+                  multiple
                   className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                   onChange={handleGalleryUpload}
                 />
