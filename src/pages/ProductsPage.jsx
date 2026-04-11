@@ -262,7 +262,7 @@ export default function ProductsPage() {
                       <div
                         key={product.id}
                         className="group rounded-2xl border border-slate-200 bg-white hover:border-amber-300 hover:shadow-sm transition-all flex flex-col overflow-hidden cursor-pointer"
-                        onClick={() => navigate(`/products/${product.id}/edit`)}
+                        onClick={() => navigate(`/products/${product.id}`)}
                         role="button"
                         tabIndex={0}
                         onKeyDown={(e) => {
@@ -326,14 +326,24 @@ export default function ProductsPage() {
                               }}
                               className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-2.5 py-1 hover:border-amber-400 hover:text-amber-800 hover:bg-amber-50"
                             >
-                              {product.status === 'PUBLISHED' ? 'Make private' : 'Make public'}
+                              {product.status === 'PUBLISHED' ? 'Unpublish' : 'Publish'}
                             </button>
                             <button
                               type="button"
                               onClick={(e) => handleShareProduct(e, product)}
-                              className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-2.5 py-1 hover:border-emerald-300 hover:text-emerald-800 hover:bg-emerald-50"
+                              className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-2 py-1 hover:border-emerald-300 hover:text-emerald-800 hover:bg-emerald-50"
                             >
-                              Share
+                              <span className="sr-only">Share</span>
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                                className="h-3.5 w-3.5"
+                                aria-hidden="true"
+                              >
+                                <path d="M15 2.5a.75.75 0 0 0-1.5 0v7.19L6.53 2.72a.75.75 0 0 0-1.06 1.06L12.44 10.75H5.25a.75.75 0 0 0 0 1.5h9a.75.75 0 0 0 .75-.75v-9Z" />
+                                <path d="M4.25 6A2.25 2.25 0 0 0 2 8.25v5.5A2.25 2.25 0 0 0 4.25 16h8.5A2.25 2.25 0 0 0 15 13.75V13a.75.75 0 0 0-1.5 0v.75c0 .414-.336.75-.75.75h-8.5a.75.75 0 0 1-.75-.75v-5.5c0-.414.336-.75.75-.75H6A.75.75 0 0 0 6 6H4.25Z" />
+                              </svg>
                             </button>
                           </div>
                         </div>

@@ -4,6 +4,7 @@ import AuthPage from './pages/AuthPage.jsx';
 import OnboardingPage from './pages/OnboardingPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import ProductsPage from './pages/ProductsPage.jsx';
+import ProductDetailPage from './pages/ProductDetailPage.jsx';
 import StorefrontSettingsPage from './pages/StorefrontSettingsPage.jsx';
 import EditProductPage from './pages/EditProductPage.jsx';
 import NewProductPage from './pages/NewProductPage.jsx';
@@ -87,6 +88,14 @@ function App() {
           element={(
             <AuthRoute>
               <ProductsPage />
+            </AuthRoute>
+          )}
+        />
+        <Route
+          path="/products/:productId"
+          element={(
+            <AuthRoute>
+              <ProductDetailPage />
             </AuthRoute>
           )}
         />
