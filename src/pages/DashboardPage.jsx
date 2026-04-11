@@ -28,7 +28,8 @@ function RevenueChart({ series }) {
           day: 'numeric',
         })
       );
-      const data = series.map((point) => point.revenue);
+      const revenueData = series.map((point) => point.revenue);
+      const viewsData = series.map((point) => point.views ?? 0);
 
       chartRef.current = new window.Chart(canvasRef.current, {
         type: 'line',
@@ -37,7 +38,7 @@ function RevenueChart({ series }) {
           datasets: [
             {
               label: 'Revenue',
-              data,
+              data: revenueData,
               borderColor: '#f59e0b',
               backgroundColor: 'rgba(245, 158, 11, 0.08)',
               borderWidth: 2,
@@ -49,6 +50,23 @@ function RevenueChart({ series }) {
               pointHoverBackgroundColor: '#f59e0b',
               tension: 0.4,
               fill: true,
+              yAxisID: 'y',
+            },
+            {
+              label: 'Store views',
+              data: viewsData,
+              borderColor: '#3b82f6',
+              backgroundColor: 'rgba(59, 130, 246, 0.06)',
+              borderWidth: 2,
+              pointBackgroundColor: '#ffffff',
+              pointBorderColor: '#3b82f6',
+              pointBorderWidth: 2,
+              pointRadius: 3,
+              pointHoverRadius: 5,
+              pointHoverBackgroundColor: '#3b82f6',
+              tension: 0.4,
+              fill: true,
+              yAxisID: 'y1',
             },
           ],
         },
@@ -60,7 +78,7 @@ function RevenueChart({ series }) {
             intersect: false,
           },
           plugins: {
-            legend: { display: false },
+            legend: { display: true, labels: { font: { size: 11 } } },
             tooltip: {
               backgroundColor: '#ffffff',
               titleColor: '#64748b',
@@ -71,7 +89,12 @@ function RevenueChart({ series }) {
               titleFont: { size: 11, weight: '500' },
               bodyFont: { size: 13, weight: '600' },
               callbacks: {
-                label: (ctx) => `  ${formatCurrency(ctx.parsed.y)}`,
+                label: (ctx) => {
+                  if (ctx.dataset.label === 'Revenue') {
+                    return `  ${formatCurrency(ctx.parsed.y)}`;
+                  }
+                  return `  ${ctx.parsed.y.toLocaleString()} views`;
+                },
               },
             },
           },
@@ -98,6 +121,17 @@ function RevenueChart({ series }) {
                 font: { size: 11 },
                 maxTicksLimit: 4,
                 callback: (v) => formatCurrency(v),
+              },
+            },
+            y1: {
+              position: 'left',
+              grid: { drawOnChartArea: false },
+              border: { display: false },
+              ticks: {
+                color: '#94a3b8',
+                font: { size: 11 },
+                maxTicksLimit: 4,
+                callback: (v) => `${v}`,
               },
             },
           },
@@ -178,6 +212,7 @@ export default function DashboardPage() {
   const series = rawSeries.map((point) => ({
     date: point.date,
     revenue: typeof point.revenue === 'number' ? point.revenue : Number(point.revenue) || 0,
+    views: typeof point.views === 'number' ? point.views : Number(point.views) || 0,
   }));
 
   return (
