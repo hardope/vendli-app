@@ -22,6 +22,25 @@ export async function verifyEmailWithOtp(email, otp) {
   return data;
 }
 
+export async function forgotPassword(email) {
+  const { data } = await api.post(`${AUTH_BASE}/forgot-password`, { email });
+  return data;
+}
+
+export async function resetPassword(payload) {
+  const body = {
+    token: payload.token,
+    password: payload.password,
+  };
+
+  if (payload.email) {
+    body.email = payload.email;
+  }
+
+  const { data } = await api.post(`${AUTH_BASE}/reset-password`, body);
+  return data;
+}
+
 export async function refreshToken(refreshTokenValue) {
   const { data } = await api.post(`${AUTH_BASE}/refresh`, { refreshToken: refreshTokenValue });
   return data;

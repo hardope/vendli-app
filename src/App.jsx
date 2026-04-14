@@ -1,6 +1,7 @@
 import './App.css';
 import { Routes, Route, Navigate, Link, useNavigate } from 'react-router-dom';
 import AuthPage from './pages/AuthPage.jsx';
+import ResetPasswordPage from './pages/ResetPasswordPage.jsx';
 import OnboardingPage from './pages/OnboardingPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import ProductsPage from './pages/ProductsPage.jsx';
@@ -43,6 +44,7 @@ function App() {
     <AppShell>
       <Routes>
         <Route path="/auth" element={<AuthPage />} />
+        <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
         <Route
           path="/onboarding"
           element={(
