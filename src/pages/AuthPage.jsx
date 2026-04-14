@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { login, register, getCurrentUser, verifyEmailWithOtp, forgotPassword } from '../services/auth.service.js';
+import { login, register, getCurrentUser, verifyEmailWithOtp } from '../services/auth.service.js';
 import { updateProfile } from '../services/profile.service.js';
 import { LANDING_URL } from '../config.js';
 import Notify from '../components/Notify.js';
@@ -17,7 +17,6 @@ export default function AuthPage() {
   const [showSigninPassword, setShowSigninPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [forgotLoading, setForgotLoading] = useState(false);
   const navigate = useNavigate();
   const { setTokens, setUser, redirectPath, setRedirectPath } = useAuthStore();
   const clearStores = useStoreStore((s) => s.clearStores);
@@ -175,25 +174,6 @@ export default function AuthPage() {
   };
 
   const onSubmit = mode === 'signin' ? handleSignin : handleSignup;
-
-  const handleForgotPassword = async () => {
-    if (!form.email) {
-      Notify.error('Enter your email first, then click "Forgot password?"');
-      return;
-    }
-
-    setForgotLoading(true);
-    try {
-      await forgotPassword(form.email);
-      Notify.info('If that email exists, we sent a reset link and code.');
-      navigate(`/auth/reset-password?email=${encodeURIComponent(form.email)}`);
-    } catch (error) {
-      console.error(error);
-      Notify.error('We could not start the reset process. Please try again.');
-    } finally {
-      setForgotLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
@@ -475,11 +455,10 @@ export default function AuthPage() {
                   <p className="text-[11px] text-slate-500 text-center mt-2">
                     <button
                       type="button"
-                      onClick={handleForgotPassword}
-                      disabled={forgotLoading}
-                      className="text-amber-700 hover:underline disabled:opacity-60"
+                      onClick={() => navigate('/auth/reset-password')}
+                      className="text-amber-700 hover:underline"
                     >
-                      {forgotLoading ? 'Sending reset email…' : 'Forgot password?'}
+                      Forgot password?
                     </button>
                   </p>
                   <p className="text-[11px] text-slate-500 text-center mt-1">
