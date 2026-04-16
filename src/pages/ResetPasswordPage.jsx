@@ -11,15 +11,15 @@ export default function ResetPasswordPage() {
 
   const search = new URLSearchParams(location.search);
   const initialEmail = search.get('email') || '';
-  const initialToken = search.get('token') || '';
+  const initialOtp = search.get('otp') || search.get('token') || '';
 
   const [form, setForm] = useState({
     email: initialEmail,
-    token: initialToken,
+    otp: initialOtp,
     password: '',
     confirmPassword: '',
   });
-  const [step, setStep] = useState(initialToken ? 'code' : 'request'); // request | code
+  const [step, setStep] = useState(initialOtp ? 'code' : 'request'); // request | code
   const [requestLoading, setRequestLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
 
@@ -39,7 +39,7 @@ export default function ResetPasswordPage() {
     setRequestLoading(true);
     try {
       await forgotPassword(form.email);
-      Notify.info('If that email exists, we sent a reset code and link.');
+      Notify.info('If that email exists, we sent a reset code.');
       setStep('code');
     } catch (error) {
       console.error(error);
@@ -52,7 +52,7 @@ export default function ResetPasswordPage() {
   const handleResetSubmit = async (event) => {
     event.preventDefault();
 
-    if (!form.token.trim()) {
+    if (!form.otp.trim()) {
       Notify.error('Enter the reset code from your email.');
       return;
     }
@@ -70,9 +70,9 @@ export default function ResetPasswordPage() {
     setResetLoading(true);
     try {
       await resetPassword({
-        token: form.token.trim(),
+        email: form.email.trim(),
+        otp: form.otp.trim(),
         password: form.password,
-        email: form.email || undefined,
       });
 
       Notify.success('Password reset successfully. You can now sign in.');
@@ -87,7 +87,7 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-      <div className="max-w-xl w-full grid gap-8 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] items-center">
+      <div className="w-full max-w-2xl grid gap-8 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] items-center shadow-xl rounded-2xl bg-white p-8 border border-slate-100">
         <div>
           <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-amber-300 bg-amber-50 text-amber-800 text-xs font-medium mb-4">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -95,7 +95,7 @@ export default function ResetPasswordPage() {
           </span>
           <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-slate-900">
             Reset your
-            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-orange-500 to-rose-400">
+            <span className="block text-transparent bg-clip-text bg-linear-to-r from-amber-500 via-orange-500 to-rose-400">
               Vendli password.
             </span>
           </h1>
@@ -105,7 +105,7 @@ export default function ResetPasswordPage() {
         </div>
 
         <div className="relative">
-          <div className="absolute -inset-3 rounded-3xl bg-gradient-to-tr from-amber-200/60 via-sky-200/40 to-fuchsia-200/60 blur-2xl" />
+          <div className="absolute -inset-3 rounded-3xl bg-linear-to-tr from-amber-200/60 via-sky-200/40 to-fuchsia-200/60 blur-2xl" />
           <div className="relative rounded-3xl border border-slate-200 bg-white/95 backdrop-blur-xl p-6 shadow-[0_24px_60px_rgba(15,23,42,0.18)]">
             {step === 'request' && (
               <form onSubmit={handleRequestSubmit} className="space-y-4">
@@ -155,16 +155,33 @@ export default function ResetPasswordPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1" htmlFor="token">
+                  <label className="block text-xs font-medium text-slate-600 mb-1" htmlFor="email-code-step">
+                    Email
+                  </label>
+                  <input
+                    id="email-code-step"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    value={form.email}
+                    onChange={handleChange}
+                    required
+                    placeholder="you@yourbrand.com"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1" htmlFor="otp">
                     Reset code
                   </label>
                   <input
-                    id="token"
-                    name="token"
+                    id="otp"
+                    name="otp"
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]*"
-                    value={form.token}
+                    value={form.otp}
                     onChange={handleChange}
                     required
                     placeholder="6-digit code"

@@ -29,14 +29,10 @@ export async function forgotPassword(email) {
 
 export async function resetPassword(payload) {
   const body = {
-    token: payload.token,
+    email: payload.email,
+    otp: payload.otp,
     password: payload.password,
   };
-
-  if (payload.email) {
-    body.email = payload.email;
-  }
-
   const { data } = await api.post(`${AUTH_BASE}/reset-password`, body);
   return data;
 }
