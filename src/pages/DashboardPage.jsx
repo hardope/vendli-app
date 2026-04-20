@@ -1,11 +1,26 @@
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import DashboardLayout from '../components/DashboardLayout.jsx';
 import { useStoreStore } from '../store/store.store.js';
 import { fetchStoreDashboardSummary } from '../services/dashboard.service.js';
 import { useWalletStore } from '../store/wallet.store.js';
 import { formatCurrency } from '../lib/format.js';
+
+function StarsInline({ value }) {
+  const clamped = Number.isFinite(value) ? Math.max(0, Math.min(5, value)) : 0;
+  const filledCount = Math.round(clamped);
+  return (
+    <span className="inline-flex items-center gap-0.5" aria-hidden="true">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <span key={n} className={n <= filledCount ? 'text-slate-900' : 'text-slate-300'}>
+          ★
+        </span>
+      ))}
+    </span>
+  );
+}
 
 function RevenueChart({ series }) {
   const canvasRef = useRef(null);
@@ -223,6 +238,23 @@ export default function DashboardPage() {
             <p className="text-xs text-slate-500">Overview</p>
             <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Store performance</h1>
           </div>
+
+          {currentStoreId && !loading && summary && (
+            <Link
+              to="/reviews"
+              className="hidden sm:inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+            >
+              <StarsInline value={Number(summary?.averageRating) || 0} />
+              <span className="font-medium">
+                {(summary.ratingCount ?? 0) > 0 ? (Number(summary.averageRating) || 0).toFixed(1) : 'No ratings yet'}
+              </span>
+              <span className="text-slate-500">
+                {`(${summary.ratingCount ?? 0})`}
+              </span>
+              <span className="text-slate-400">•</span>
+              <span className="font-medium">View</span>
+            </Link>
+          )}
         </div>
 
         {!currentStoreId && (

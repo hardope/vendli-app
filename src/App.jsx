@@ -14,6 +14,7 @@ import OrdersPage from './pages/OrdersPage.jsx';
 import OrderDetailPage from './pages/OrderDetailPage.jsx';
 import CustomersPage from './pages/CustomersPage.jsx';
 import CustomerDetailPage from './pages/CustomerDetailPage.jsx';
+import ReviewsPage from './pages/ReviewsPage.jsx';
 import AuthRoute from './components/AuthRoute.jsx';
 import { useAuthStore } from './store/auth.store.js';
 import { useStoreStore } from './store/store.store.js';
@@ -138,6 +139,14 @@ function App() {
           element={(
             <AuthRoute>
               <StorefrontSettingsPage />
+            </AuthRoute>
+          )}
+        />
+        <Route
+          path="/reviews"
+          element={(
+            <AuthRoute>
+              <ReviewsPage />
             </AuthRoute>
           )}
         />

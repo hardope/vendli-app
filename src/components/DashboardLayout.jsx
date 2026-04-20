@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Boxes, Palette, CreditCard, FileText, Users, Copy } from 'lucide-react';
+import { LayoutDashboard, Boxes, Palette, CreditCard, FileText, Users, Copy, Star } from 'lucide-react';
 import { useAuthStore } from '../store/auth.store.js';
 import { useStoreStore } from '../store/store.store.js';
 import { useWalletStore } from '../store/wallet.store.js';
@@ -123,6 +123,7 @@ export default function DashboardLayout({ children }) {
     { to: '/orders', label: 'Orders', icon: FileText },
     { to: '/products', label: 'Products', icon: Boxes },
     { to: '/customers', label: 'Customers', icon: Users },
+    { to: '/reviews', label: 'Reviews', icon: Star },
     { to: '/storefront-settings', label: 'Store settings', icon: Palette },
   ];
 
@@ -218,7 +219,7 @@ export default function DashboardLayout({ children }) {
               <div className="px-4 pb-3 border-b border-slate-100">
                 <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-3 py-1 text-[11px] text-slate-700 max-w-full">
                   <span className="font-medium whitespace-nowrap mr-1">Your store link</span>
-                  <span className="truncate max-w-[9rem]">{storefrontUrl}</span>
+                  <span className="truncate max-w-36">{storefrontUrl}</span>
                   <button
                     type="button"
                     onClick={async () => {
@@ -226,7 +227,7 @@ export default function DashboardLayout({ children }) {
                       const mod = await import('../components/Notify.js');
                       mod.default.success('Store link copied to clipboard');
                     }}
-                    className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 bg-white text-[11px] text-slate-500 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 flex-shrink-0"
+                    className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 bg-white text-[11px] text-slate-500 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 shrink-0"
                     aria-label="Copy store link"
                   >
                     <Copy className="h-3 w-3" />
@@ -453,7 +454,7 @@ export default function DashboardLayout({ children }) {
                         const mod = await import('../components/Notify.js');
                         mod.default.success('Store link copied to clipboard');
                       }}
-                      className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-[11px] text-slate-500 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 flex-shrink-0"
+                      className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-[11px] text-slate-500 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 shrink-0"
                       aria-label="Copy store link"
                     >
                       <Copy className="h-3.5 w-3.5" />
