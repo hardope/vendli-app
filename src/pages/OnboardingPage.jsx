@@ -8,6 +8,7 @@ import { createProduct } from '../services/product.service.js';
 import { getProfile, updateProfile } from '../services/profile.service.js';
 import api from '../lib/api.js';
 import { useStoreStore } from '../store/store.store.js';
+import { useAuthStore } from '../store/auth.store.js';
 import Notify from '../components/Notify.js';
 
 // Note: these helpers use HSV internally (h = 0-360, s = 0-100, l = value 0-100)
@@ -143,7 +144,8 @@ export default function OnboardingPage() {
   const productImageInputRef = useRef(null);
   const productGalleryInputRef = useRef(null);
   const navigate = useNavigate();
-  const { stores, setStores, setCurrentStoreId, currentStoreId } = useStoreStore();
+  const { stores, setStores, setCurrentStoreId, currentStoreId, clearStores } = useStoreStore();
+  const signOut = useAuthStore((s) => s.signOut);
 
   const activeStore = useMemo(() => stores.find((s) => s.id === activeStoreId) || null, [stores, activeStoreId]);
 
@@ -493,9 +495,30 @@ export default function OnboardingPage() {
     }
   };
 
+  const handleLogout = () => {
+    signOut();
+    clearStores?.();
+    navigate('/auth');
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-10 flex items-center justify-center">
-      <div className="max-w-5xl w-full grid gap-10 md:grid-cols-2 items-start">
+      <div className="max-w-5xl w-full">
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-2">
+            <img src="/logo.png" alt="Vendli logo" className="h-7 w-7" />
+            <span className="text-sm font-semibold tracking-tight text-slate-900">Vendli</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-xs text-slate-700 hover:border-rose-300 hover:text-rose-700 transition-colors"
+          >
+            Log out
+          </button>
+        </div>
+
+        <div className="grid gap-10 md:grid-cols-2 items-start">
         <div>
           <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-slate-900 mb-3">
             {step === 'profile' && 'Tell us about you.'}
@@ -1366,6 +1389,7 @@ export default function OnboardingPage() {
               </>
             )}
           </div>
+        </div>
         </div>
       </div>
     </div>
