@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Boxes, Palette, CreditCard, FileText, Users, Copy, Star } from 'lucide-react';
+import { LayoutDashboard, Boxes, Palette, CreditCard, FileText, Users, Copy, Star, MessageCircle } from 'lucide-react';
 import { useAuthStore } from '../store/auth.store.js';
 import { useStoreStore } from '../store/store.store.js';
 import { useWalletStore } from '../store/wallet.store.js';
@@ -126,6 +126,8 @@ export default function DashboardLayout({ children }) {
     { to: '/reviews', label: 'Reviews', icon: Star },
     { to: '/storefront-settings', label: 'Store settings', icon: Palette },
   ];
+
+  const whatsappCommunityUrl = 'https://chat.whatsapp.com/HEe3smzc7Me6A94fUBJp0N?mode=gi_t';
 
   if (storesLoading && stores.length === 0) {
     return (
@@ -278,6 +280,21 @@ export default function DashboardLayout({ children }) {
                   </span>
                   <span>My wallet</span>
                 </NavLink>
+                <a
+                  href={whatsappCommunityUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className={classNames(
+                    'flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium',
+                    'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
+                  )}
+                >
+                  <span className="text-sm leading-none">
+                    <MessageCircle className="h-4 w-4" />
+                  </span>
+                  <span>Join WhatsApp community</span>
+                </a>
               </div>
             </nav>
             <div className="px-4 py-3 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between">
@@ -409,6 +426,20 @@ export default function DashboardLayout({ children }) {
               </span>
               <span>My wallet</span>
             </NavLink>
+            <a
+              href={whatsappCommunityUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={classNames(
+                'flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium',
+                'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
+              )}
+            >
+              <span className="text-sm leading-none">
+                <MessageCircle className="h-4 w-4" />
+              </span>
+              <span>Join WhatsApp community</span>
+            </a>
           </div>
         </nav>
         <div className="px-4 py-3 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between">
