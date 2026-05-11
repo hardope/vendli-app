@@ -51,7 +51,409 @@ function SectionHeader({ label, title, action }) {
   );
 }
 
-const EMPTY_METHOD = { label: '', bankName: '', bankCode: '', accountName: '', accountNumber: '' };
+const EMPTY_METHOD = { label: '', bankName: '', accountName: '', accountNumber: '' };
+
+function PayoutModal({ balance, payoutMethods, onClose, onSuccess }) {
+  const [amount, setAmount] = useState('');
+  const [methodId, setMethodId] = useState(() => {
+    const active = payoutMethods.find((m) => m.status === 'ACTIVE');
+    return active ? active.id : '';
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  const numericAmount = Number(amount);
+  const selectedMethod = payoutMethods.find((m) => m.id === methodId);
+  const isValid = !Number.isNaN(numericAmount) && numericAmount > 0 && numericAmount <= balance && methodId;
+  const pct = balance > 0 ? Math.min(100, (numericAmount / balance) * 100) : 0;
+
+  function handleQuickAmount(value) {
+    setAmount(String(Math.floor(value)));
+  }
+
+  async function handleSubmit() {
+    if (!isValid) return;
+    setSubmitting(true);
+    try {
+      await createPayoutRequest({ payoutMethodId: methodId, amount: numericAmount });
+      Notify.success("Payout request submitted. We'll process it shortly.");
+      onSuccess();
+    } catch {
+      Notify.error('Could not submit the payout request. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 sm:p-6"
+      style={{ background: 'rgba(15,23,42,0.45)' }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
+        {/* Modal header */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-slate-100">
+          <div>
+            <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-0.5">Withdraw</p>
+            <p className="text-base font-semibold text-slate-900">Request a payout</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+            aria-label="Close"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 16 16">
+              <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Modal body */}
+        <div className="px-5 py-5 space-y-5">
+          {/* Balance pill */}
+          <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3 flex items-center justify-between">
+            <div>
+              <p className="text-[11px] text-slate-400 mb-0.5">Available balance</p>
+              <p className="text-xl font-bold text-slate-900 tabular-nums">{formatCurrency(balance)}</p>
+            </div>
+            <div className="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center">
+              <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 16 16">
+                <rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="1.2"/>
+                <path d="M1 7h14" stroke="currentColor" strokeWidth="1.2"/>
+                <circle cx="4.5" cy="10" r="0.8" fill="currentColor"/>
+              </svg>
+            </div>
+          </div>
+
+          {/* Amount input */}
+          <div className="space-y-2">
+            <label className="block text-xs font-medium text-slate-700">Amount to withdraw</label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold text-slate-400 pointer-events-none select-none">₦</span>
+              <input
+                type="number"
+                className="w-full rounded-xl border border-slate-200 bg-white pl-8 pr-4 py-3 text-xl font-bold text-slate-900 tabular-nums placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-300"
+                placeholder="0"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                min="0"
+              />
+            </div>
+
+            {/* Progress bar */}
+            <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-200 ${numericAmount > balance ? 'bg-rose-400' : 'bg-emerald-400'}`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+
+            {/* Quick amounts */}
+            <div className="flex gap-2">
+              {[0.25, 0.5, 0.75, 1].map((frac) => (
+                <button
+                  key={frac}
+                  type="button"
+                  onClick={() => handleQuickAmount(balance * frac)}
+                  className="flex-1 py-1 rounded-lg border border-slate-200 text-[11px] text-slate-500 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+                >
+                  {frac === 1 ? 'Max' : `${frac * 100}%`}
+                </button>
+              ))}
+            </div>
+
+            {numericAmount > balance && (
+              <p className="text-[11px] text-rose-500 flex items-center gap-1">
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 12 12"><circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1.2"/><path d="M6 4v2.5M6 8.5h.01" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
+                Amount exceeds your available balance
+              </p>
+            )}
+          </div>
+
+          {/* To account */}
+          <div className="space-y-2">
+            <label className="block text-xs font-medium text-slate-700">To account</label>
+            <div className="space-y-2">
+              {payoutMethods.filter((m) => m.status === 'ACTIVE').map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setMethodId(m.id)}
+                  className={`w-full text-left rounded-xl border px-4 py-3 transition-colors ${
+                    methodId === m.id
+                      ? 'border-slate-900 bg-slate-50'
+                      : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-slate-800">{m.label}</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">{m.details?.bankName} · ····{m.details?.accountNumber?.slice(-4)}</p>
+                    </div>
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                      methodId === m.id ? 'border-slate-900 bg-slate-900' : 'border-slate-300'
+                    }`}>
+                      {methodId === m.id && (
+                        <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                      )}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Modal footer */}
+        <div className="px-5 pb-5 pt-2 border-t border-slate-100 flex gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-full border border-slate-200 text-sm text-slate-600 font-medium hover:bg-slate-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={!isValid || submitting}
+            onClick={handleSubmit}
+            className="flex-1 py-2.5 rounded-full bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+          >
+            {submitting ? (
+              <>
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" strokeDasharray="30" strokeDashoffset="10"/></svg>
+                Submitting…
+              </>
+            ) : (
+              <>
+                Withdraw {isValid ? formatCurrency(numericAmount) : ''}
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const FIELDS = [
+  { key: 'label',         label: 'Nickname',           placeholder: 'e.g. Main business account', hint: 'Optional' },
+  { key: 'bankName',      label: 'Bank name',           placeholder: 'e.g. GTBank' },
+  { key: 'accountName',   label: 'Account name',        placeholder: 'e.g. Acme Studios LTD' },
+  { key: 'accountNumber', label: 'Account number',      placeholder: '0123456789' },
+];
+
+function AddAccountModal({ onClose, onSuccess }) {
+  const [step, setStep] = useState('details');
+  const [method, setMethod] = useState(EMPTY_METHOD);
+  const [otpCode, setOtpCode] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const isDetailsValid = method.bankName && method.accountName && method.accountNumber;
+
+  function resolveLabel(payload) {
+    const nickname = payload.label?.trim();
+    if (nickname) return nickname;
+    return `${payload.accountName} - ${payload.bankName}`;
+  }
+
+  async function handleContinue() {
+    setLoading(true);
+    try {
+      const normalizedMethod = {
+        ...method,
+        label: resolveLabel(method),
+      };
+      await startCreatePayoutMethod(normalizedMethod);
+      setMethod(normalizedMethod);
+      setStep('otp');
+    } catch {
+      Notify.error('Could not save bank details. Please check and try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleVerify() {
+    setLoading(true);
+    try {
+      await confirmPayoutMethod({ otp: otpCode });
+      Notify.success('Bank account added successfully.');
+      onSuccess();
+    } catch {
+      Notify.error('Invalid or expired code. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 sm:p-6"
+      style={{ background: 'rgba(15,23,42,0.45)' }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            {step === 'otp' && (
+              <button
+                type="button"
+                onClick={() => { setStep('details'); setOtpCode(''); }}
+                className="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+                aria-label="Back"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 16 16"><path d="M10 3L6 8l4 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </button>
+            )}
+            <div>
+              <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-0.5">
+                {step === 'details' ? 'Step 1 of 2' : 'Step 2 of 2'}
+              </p>
+              <p className="text-base font-semibold text-slate-900">
+                {step === 'details' ? 'Add bank account' : 'Verify your email'}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+            aria-label="Close"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 16 16"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+          </button>
+        </div>
+
+        {/* Step indicator */}
+        <div className="flex h-1">
+          <div className="flex-1 bg-slate-900 transition-all" />
+          <div className={`flex-1 transition-all ${step === 'otp' ? 'bg-slate-900' : 'bg-slate-100'}`} />
+        </div>
+
+        {/* Details step */}
+        {step === 'details' && (
+          <>
+            <div className="px-5 py-5 space-y-3">
+              {FIELDS.map(({ key, label, placeholder, hint }) => (
+                <div key={key}>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-medium text-slate-700">{label}</label>
+                    {hint && <span className="text-[10px] text-slate-400">{hint}</span>}
+                  </div>
+                  <input
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-300"
+                    placeholder={placeholder}
+                    value={method[key]}
+                    onChange={(e) => setMethod((m) => ({ ...m, [key]: e.target.value }))}
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="px-5 pb-5 pt-2 border-t border-slate-100 flex gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 py-2.5 rounded-full border border-slate-200 text-sm text-slate-600 font-medium hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={!isDetailsValid || loading}
+                onClick={handleContinue}
+                className="flex-1 py-2.5 rounded-full bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" strokeDasharray="30" strokeDashoffset="10"/></svg>
+                    Saving…
+                  </>
+                ) : 'Continue'}
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* OTP step */}
+        {step === 'otp' && (
+          <>
+            <div className="px-5 py-5 space-y-5">
+              <p className="text-sm text-slate-500 leading-relaxed">
+                We sent a 6-digit verification code to the email on your Vendli account. Enter it below to confirm <span className="font-medium text-slate-700">{method.label || 'this account'}</span>.
+              </p>
+
+              {/* OTP boxes */}
+              <div>
+                <div className="flex items-center gap-2 mb-2" onClick={() => document.getElementById('otp-input-modal')?.focus()}>
+                  {[0,1,2,3,4,5].map((i) => (
+                    <div
+                      key={i}
+                      className={`flex-1 h-12 rounded-xl border-2 flex items-center justify-center text-lg font-bold cursor-text transition-colors ${
+                        otpCode[i]
+                          ? 'border-slate-900 bg-white text-slate-900'
+                          : i === otpCode.length
+                          ? 'border-slate-400 bg-slate-50 text-slate-300'
+                          : 'border-slate-200 bg-white text-slate-200'
+                      }`}
+                    >
+                      {otpCode[i] || '·'}
+                    </div>
+                  ))}
+                </div>
+                <input
+                  id="otp-input-modal"
+                  className="sr-only"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  maxLength={6}
+                  autoFocus
+                  inputMode="numeric"
+                  aria-label="Verification code"
+                />
+                <p className="text-[11px] text-slate-400">Tap the boxes to enter your code</p>
+              </div>
+
+              {/* Account summary */}
+              <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+                <p className="text-[11px] text-slate-400 mb-1">Adding account</p>
+                <p className="text-sm font-medium text-slate-800">{method.label}</p>
+                <p className="text-xs text-slate-500 mt-0.5">{method.bankName} · {method.accountNumber}</p>
+              </div>
+            </div>
+
+            <div className="px-5 pb-5 pt-2 border-t border-slate-100 flex gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 py-2.5 rounded-full border border-slate-200 text-sm text-slate-600 font-medium hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={otpCode.length !== 6 || loading}
+                onClick={handleVerify}
+                className="flex-1 py-2.5 rounded-full bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" strokeDasharray="30" strokeDashoffset="10"/></svg>
+                    Verifying…
+                  </>
+                ) : 'Verify & add account'}
+              </button>
+            </div>
+          </>
+        )}
+
+      </div>
+    </div>
+  );
+}
 
 export default function WalletPage() {
   const { currentStoreId } = useStoreStore();
@@ -64,13 +466,8 @@ export default function WalletPage() {
   const [wallet, setWallet] = useState(null);
   const [payoutMethods, setPayoutMethods] = useState([]);
   const [payoutRequests, setPayoutRequests] = useState([]);
-  const [addingMethod, setAddingMethod] = useState(false);
-  const [newMethod, setNewMethod] = useState(EMPTY_METHOD);
-  const [otpStep, setOtpStep] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
-  const [requestingPayout, setRequestingPayout] = useState(false);
-  const [payoutAmount, setPayoutAmount] = useState('');
-  const [payoutMethodId, setPayoutMethodId] = useState('');
+  const [addAccountOpen, setAddAccountOpen] = useState(false);
+  const [payoutModalOpen, setPayoutModalOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -106,69 +503,22 @@ export default function WalletPage() {
   const hasPrev = page > 1;
   const hasNext = page * pageSize < total;
   const activeMethod = payoutMethods.find((m) => m.status === 'ACTIVE');
-  const hasPendingRequest = payoutRequests.some((p) => p.status === 'PENDING');
+  const pendingPayoutRequests = payoutRequests.filter((p) => p.status === 'PENDING');
+  const hasPendingRequest = pendingPayoutRequests.length > 0;
 
-  function openAddMethod() {
-    setAddingMethod(true);
-    setOtpStep(false);
-    setOtpCode('');
-    setNewMethod(EMPTY_METHOD);
+  async function handleAddAccountSuccess() {
+    const [methods, requests] = await Promise.all([fetchPayoutMethods(), fetchPayoutRequests()]);
+    setPayoutMethods(methods ?? []);
+    setPayoutRequests(requests ?? []);
+    setAddAccountOpen(false);
   }
 
-  function cancelAddMethod() {
-    setAddingMethod(false);
-    setOtpStep(false);
-    setOtpCode('');
-    setNewMethod(EMPTY_METHOD);
-  }
-
-  function openRequestPayout() {
-    setRequestingPayout(true);
-    setPayoutAmount('');
-    setPayoutMethodId(activeMethod ? activeMethod.id : '');
-  }
-
-  async function handleStartMethod() {
-    try {
-      await startCreatePayoutMethod(newMethod);
-      setOtpStep(true);
-    } catch {
-      Notify.error('Could not start payout method. Please check the details and try again.');
-    }
-  }
-
-  async function handleConfirmMethod() {
-    try {
-      await confirmPayoutMethod({ otp: otpCode });
-      const [methods, requests] = await Promise.all([fetchPayoutMethods(), fetchPayoutRequests()]);
-      setPayoutMethods(methods ?? []);
-      setPayoutRequests(requests ?? []);
-      cancelAddMethod();
-      Notify.success('Payout method added successfully.');
-    } catch {
-      Notify.error('Invalid or expired code. Please try again.');
-    }
-  }
-
-  async function handleSubmitPayout() {
-    const numericAmount = Number(payoutAmount);
-    if (Number.isNaN(numericAmount) || numericAmount <= 0) {
-      Notify.error('Enter a valid amount greater than zero.');
-      return;
-    }
-    if (numericAmount > balance) {
-      Notify.error('Amount exceeds your available balance.');
-      return;
-    }
-    try {
-      await createPayoutRequest({ payoutMethodId, amount: numericAmount });
-      const requests = await fetchPayoutRequests();
-      setPayoutRequests(requests ?? []);
-      setRequestingPayout(false);
-      Notify.success("Payout request submitted. We'll process it shortly.");
-    } catch {
-      Notify.error('Could not submit the payout request. Please try again.');
-    }
+  async function handlePayoutSuccess() {
+    const [data, requests] = await Promise.all([fetchWallet(page, pageSize), fetchPayoutRequests()]);
+    setWallet(data);
+    setWalletBalance(data.balance ?? 0);
+    setPayoutRequests(requests ?? []);
+    setPayoutModalOpen(false);
   }
 
   return (
@@ -206,7 +556,7 @@ export default function WalletPage() {
                 <button
                   type="button"
                   disabled={balance <= 0 || !activeMethod || hasPendingRequest}
-                  onClick={openRequestPayout}
+                  onClick={() => setPayoutModalOpen(true)}
                   className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 16 16"><path d="M8 2v9M4 8l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M2 14h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
@@ -214,7 +564,7 @@ export default function WalletPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={openAddMethod}
+                  onClick={() => setAddAccountOpen(true)}
                   className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full border border-slate-200 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
@@ -246,7 +596,7 @@ export default function WalletPage() {
             action={
               <button
                 type="button"
-                onClick={openAddMethod}
+                onClick={() => setAddAccountOpen(true)}
                 className="flex-shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-full border border-slate-200 bg-white text-xs text-slate-600 hover:bg-slate-50 transition-colors"
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 14 14"><path d="M7 2v10M2 7h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
@@ -256,98 +606,9 @@ export default function WalletPage() {
           />
 
           <div className="p-5 space-y-4">
-            {/* Add method — details step */}
-            {addingMethod && !otpStep && (
-              <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-4">
-                <p className="text-xs font-medium text-slate-700">Enter your bank details</p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {[
-                    { key: 'label',         label: 'Nickname',                placeholder: 'e.g. Business account' },
-                    { key: 'bankName',      label: 'Bank name',               placeholder: 'e.g. GTBank' },
-                    { key: 'accountName',   label: 'Account name',            placeholder: 'e.g. Acme Studios LTD' },
-                    { key: 'accountNumber', label: 'Account number',          placeholder: '0123456789' },
-                    { key: 'bankCode',      label: 'Sort / routing code',     placeholder: '058 (optional)' },
-                  ].map(({ key, label, placeholder }) => (
-                    <div key={key} className="space-y-1">
-                      <label className="block text-[11px] font-medium text-slate-600">{label}</label>
-                      <input
-                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
-                        placeholder={placeholder}
-                        value={newMethod[key]}
-                        onChange={(e) => setNewMethod((m) => ({ ...m, [key]: e.target.value }))}
-                      />
-                    </div>
-                  ))}
-                </div>
-                <div className="flex gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={handleStartMethod}
-                    className="px-4 py-1.5 rounded-full bg-slate-900 text-white text-xs font-medium hover:bg-slate-800 transition-colors"
-                  >
-                    Continue
-                  </button>
-                  <button
-                    type="button"
-                    onClick={cancelAddMethod}
-                    className="px-4 py-1.5 rounded-full border border-slate-200 text-xs text-slate-600 hover:bg-slate-50 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Add method — OTP step */}
-            {addingMethod && otpStep && (
-              <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
-                <div>
-                  <p className="text-xs font-medium text-slate-700 mb-1">Verify your email</p>
-                  <p className="text-[12px] text-slate-500">We sent a 6-digit code to the email on your Vendli account. Enter it below to confirm this bank account.</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {[0,1,2,3,4,5].map((i) => (
-                    <div
-                      key={i}
-                      className={`w-9 h-11 rounded-lg border flex items-center justify-center text-base font-semibold ${
-                        otpCode[i] ? 'border-slate-900 bg-white text-slate-900' : 'border-slate-200 bg-white text-slate-300'
-                      }`}
-                    >
-                      {otpCode[i] || '·'}
-                    </div>
-                  ))}
-                  <input
-                    className="sr-only"
-                    value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    maxLength={6}
-                    autoFocus
-                    aria-label="OTP code"
-                  />
-                </div>
-                <p className="text-[11px] text-slate-400">Click the boxes above to type your code</p>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    disabled={otpCode.length !== 6}
-                    onClick={handleConfirmMethod}
-                    className="px-4 py-1.5 rounded-full bg-slate-900 text-white text-xs font-medium hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Verify account
-                  </button>
-                  <button
-                    type="button"
-                    onClick={cancelAddMethod}
-                    className="px-4 py-1.5 rounded-full border border-slate-200 text-xs text-slate-600 hover:bg-slate-50 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
 
             {/* Methods list */}
-            {!addingMethod && payoutMethods.length === 0 && (
+            {payoutMethods.length === 0 && (
               <div className="text-center py-8">
                 <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
                   <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 20 20"><rect x="2" y="5" width="16" height="12" rx="2" stroke="currentColor" strokeWidth="1.5"/><path d="M2 9h16" stroke="currentColor" strokeWidth="1.5"/></svg>
@@ -356,7 +617,7 @@ export default function WalletPage() {
                 <p className="text-xs text-slate-400 mt-1">Add an account to start withdrawing your earnings</p>
                 <button
                   type="button"
-                  onClick={openAddMethod}
+                  onClick={() => setAddAccountOpen(true)}
                   className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-slate-200 text-xs text-slate-700 hover:bg-slate-50 transition-colors"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 14 14"><path d="M7 2v10M2 7h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
@@ -365,7 +626,7 @@ export default function WalletPage() {
               </div>
             )}
 
-            {!addingMethod && payoutMethods.length > 0 && (
+            {payoutMethods.length > 0 && (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {payoutMethods.map((m) => (
                   <div
@@ -391,6 +652,7 @@ export default function WalletPage() {
         </SectionCard>
 
         {/* Payout requests */}
+        {hasPendingRequest && (
         <SectionCard>
           <SectionHeader
             label="Withdrawals"
@@ -399,7 +661,7 @@ export default function WalletPage() {
               <button
                 type="button"
                 disabled={!activeMethod || hasPendingRequest || balance <= 0}
-                onClick={openRequestPayout}
+                onClick={() => setPayoutModalOpen(true)}
                 className="flex-shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-full border border-slate-200 bg-white text-xs text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
               >
                 Request payout
@@ -408,64 +670,6 @@ export default function WalletPage() {
           />
 
           <div className="p-5 space-y-4">
-            {/* Payout request form */}
-            {requestingPayout && (
-              <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-4">
-                <p className="text-xs font-medium text-slate-700">New withdrawal request</p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-1">
-                    <label className="block text-[11px] font-medium text-slate-600">Amount</label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[12px] text-slate-400">₦</span>
-                      <input
-                        className="w-full rounded-lg border border-slate-200 bg-white pl-6 pr-3 py-1.5 text-[12px] text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
-                        placeholder="0.00"
-                        value={payoutAmount}
-                        onChange={(e) => setPayoutAmount(e.target.value)}
-                      />
-                    </div>
-                    <p className="text-[10px] text-slate-400">Available: {formatCurrency(balance)}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-[11px] font-medium text-slate-600">To account</label>
-                    <select
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300"
-                      value={payoutMethodId}
-                      onChange={(e) => setPayoutMethodId(e.target.value)}
-                    >
-                      {payoutMethods.filter((m) => m.status === 'ACTIVE').map((m) => (
-                        <option key={m.id} value={m.id}>{m.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="flex gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={handleSubmitPayout}
-                    className="px-4 py-1.5 rounded-full bg-slate-900 text-white text-xs font-medium hover:bg-slate-800 transition-colors"
-                  >
-                    Submit request
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRequestingPayout(false)}
-                    className="px-4 py-1.5 rounded-full border border-slate-200 text-xs text-slate-600 hover:bg-slate-50 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {payoutRequests.length === 0 && !requestingPayout && (
-              <div className="text-center py-8">
-                <p className="text-sm font-medium text-slate-500">No payout requests yet</p>
-                <p className="text-xs text-slate-400 mt-1">When you request a withdrawal, it will appear here</p>
-              </div>
-            )}
-
-            {payoutRequests.length > 0 && (
               <div className="overflow-x-auto rounded-xl border border-slate-100">
                 <table className="min-w-full text-[11px]">
                   <thead className="bg-slate-50/80">
@@ -477,7 +681,7 @@ export default function WalletPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 bg-white">
-                    {payoutRequests.map((p) => (
+                    {pendingPayoutRequests.map((p) => (
                       <tr key={p.id} className="text-slate-700 hover:bg-slate-50/50">
                         <td className="px-4 py-3 whitespace-nowrap text-slate-500">{new Date(p.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</td>
                         <td className="px-4 py-3 font-medium">{p.payoutMethod?.label ?? '—'}</td>
@@ -488,9 +692,9 @@ export default function WalletPage() {
                   </tbody>
                 </table>
               </div>
-            )}
           </div>
         </SectionCard>
+        )}
 
         {/* Transactions */}
         <SectionCard>
@@ -616,6 +820,22 @@ export default function WalletPage() {
             </div>
           </div>
         </SectionCard>
+
+        {addAccountOpen && (
+          <AddAccountModal
+            onClose={() => setAddAccountOpen(false)}
+            onSuccess={handleAddAccountSuccess}
+          />
+        )}
+
+        {payoutModalOpen && (
+          <PayoutModal
+            balance={balance}
+            payoutMethods={payoutMethods}
+            onClose={() => setPayoutModalOpen(false)}
+            onSuccess={handlePayoutSuccess}
+          />
+        )}
 
       </div>
     </DashboardLayout>
