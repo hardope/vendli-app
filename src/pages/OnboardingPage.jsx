@@ -10,6 +10,7 @@ import api from '../lib/api.js';
 import { useStoreStore } from '../store/store.store.js';
 import { useAuthStore } from '../store/auth.store.js';
 import Notify from '../components/Notify.js';
+import PhoneNumberInput from '../components/PhoneNumberInput.jsx';
 
 // Note: these helpers use HSV internally (h = 0-360, s = 0-100, l = value 0-100)
 // so that the color under the picker circle matches the computed hex.
@@ -103,6 +104,25 @@ function hslFromHex(hex) {
   };
 }
 
+function hasCompleteProfile(profile) {
+  return Boolean(profile?.firstName?.trim() && profile?.lastName?.trim());
+}
+
+function storeNeedsBranding(store) {
+  if (!store) return false;
+
+  return !(
+    store.brandColor ||
+    store.brandAccentColor ||
+    store.bannerImage ||
+    store.logo
+  );
+}
+
+function pickActiveStore(stores, currentStoreId) {
+  return stores.find((store) => store.id === currentStoreId) || stores[0] || null;
+}
+
 export default function OnboardingPage() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -161,10 +181,13 @@ export default function OnboardingPage() {
         const onboarding = onboardingRes.data;
         const pending = Array.isArray(onboarding?.pendingTasks) ? onboarding.pendingTasks : [];
         const filteredPending = pending.filter((task) => task !== 'CONNECT_PAYOUT');
+        const needsProfile = filteredPending.includes('COMPLETE_PROFILE');
 
         // Preload profile so we can show/update names if needed
+        let profileData = null;
         try {
           const profile = await getProfile();
+          profileData = profile;
           setProfileForm({
             firstName: profile.firstName ?? '',
             lastName: profile.lastName ?? '',
@@ -180,24 +203,47 @@ export default function OnboardingPage() {
         if (!cancelled) {
           const items = Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : [];
           setStores(items);
+          const selectedStore = pickActiveStore(items, currentStoreId);
+          const shouldShowBranding =
+            Boolean(selectedStore) &&
+            filteredPending.includes('ADD_FIRST_PRODUCT') &&
+            storeNeedsBranding(selectedStore);
 
-          // Decide initial step: profile first if pending, otherwise stores/branding/product based on remaining tasks
-          if (filteredPending.includes('COMPLETE_PROFILE')) {
+          // Decide initial step: profile only when the user still needs to finish it.
+          if (needsProfile && !hasCompleteProfile(profileData)) {
             setStep('profile');
           } else if (filteredPending.includes('CREATE_STORE')) {
             setStep('stores');
+          } else if (shouldShowBranding) {
+            if (selectedStore) {
+              setCurrentStoreId(selectedStore.id);
+              setActiveStoreId(selectedStore.id);
+            }
+            setBrandForm({
+              description: selectedStore?.description ?? '',
+              brandColor: selectedStore?.brandColor ?? '',
+              brandAccentColor: selectedStore?.brandAccentColor ?? '',
+              bannerImage: selectedStore?.bannerImage ?? '',
+              logo: selectedStore?.logo ?? '',
+              contactEmail: selectedStore?.contactEmail ?? '',
+              contactWhatsapp: selectedStore?.contactWhatsapp ?? '',
+              contactLocation: selectedStore?.contactLocation ?? '',
+              contactAddress: selectedStore?.contactAddress ?? '',
+            });
+            setStep('branding');
           } else if (filteredPending.includes('ADD_FIRST_PRODUCT')) {
             // When the remaining task is to add a first product, make sure
             // we have an active store selected so the product form can show.
-            const defaultStore =
-              items.find((s) => s.id === currentStoreId) || (items.length > 0 ? items[0] : null);
-
-            if (defaultStore) {
-              setCurrentStoreId(defaultStore.id);
-              setActiveStoreId(defaultStore.id);
+            if (selectedStore) {
+              setCurrentStoreId(selectedStore.id);
+              setActiveStoreId(selectedStore.id);
             }
             setStep('product');
           } else {
+            if (selectedStore) {
+              setCurrentStoreId(selectedStore.id);
+              setActiveStoreId(selectedStore.id);
+            }
             setStep('stores');
           }
         }
@@ -719,24 +765,28 @@ export default function OnboardingPage() {
                             <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-[11px] text-slate-500">
                               +
                             </span>
-                            <input
+                            <PhoneNumberInput
                               id="contactWhatsappCountryCode"
                               name="contactWhatsappCountryCode"
-                              type="text"
+                              segment="countryCode"
                               value={form.contactWhatsappCountryCode}
-                              onChange={handleChange}
+                              onChange={(nextValue) =>
+                                setForm((prev) => ({ ...prev, contactWhatsappCountryCode: nextValue }))
+                              }
                               placeholder="234"
                               className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-5 pr-2 py-2 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
                             />
                           </div>
                         </div>
                         <div className="flex-1">
-                          <input
+                          <PhoneNumberInput
                             id="contactWhatsappLocal"
                             name="contactWhatsappLocal"
-                            type="text"
+                            segment="local"
                             value={form.contactWhatsappLocal}
-                            onChange={handleChange}
+                            onChange={(nextValue) =>
+                              setForm((prev) => ({ ...prev, contactWhatsappLocal: nextValue }))
+                            }
                             placeholder="8012345678"
                             className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
                           />

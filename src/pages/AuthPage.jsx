@@ -9,6 +9,20 @@ import Notify from '../components/Notify.js';
 import { useAuthStore } from '../store/auth.store.js';
 import { useStoreStore } from '../store/store.store.js';
 
+function getApiErrorMessage(error) {
+  const rawMessage = error?.response?.data?.message;
+
+  if (Array.isArray(rawMessage)) {
+    return rawMessage.filter(Boolean).join(' ');
+  }
+
+  if (typeof rawMessage === 'string') {
+    return rawMessage;
+  }
+
+  return '';
+}
+
 export default function AuthPage() {
   const [mode, setMode] = useState('signin');
   const [form, setForm] = useState({ email: '', password: '', firstName: '', lastName: '' });
@@ -112,7 +126,16 @@ export default function AuthPage() {
         setSignupStep('otp');
       } catch (error) {
         console.error(error);
-        Notify.error('We could not create your account. Please try again.');
+        const response = error?.response;
+        const message = getApiErrorMessage(error);
+
+        if (response?.status === 409 || /already exists|already in use/i.test(message)) {
+          Notify.error('An account with this email already exists. Try signing in instead.');
+        } else if (message) {
+          Notify.error(message);
+        } else {
+          Notify.error('We could not create your account. Please try again.');
+        }
       } finally {
         setLoading(false);
       }

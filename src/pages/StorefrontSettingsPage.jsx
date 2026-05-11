@@ -7,6 +7,7 @@ import { updateStore, activateStore, deactivateStore } from '../services/store.s
 import { uploadFile } from '../services/files.service.js';
 import Notify from '../components/Notify.js';
 import BrandColorPicker from '../components/BrandColorPicker.jsx';
+import PhoneNumberInput from '../components/PhoneNumberInput.jsx';
 
 export default function StorefrontSettingsPage() {
   const { stores, currentStoreId, setCurrentStoreId, setStores } = useStoreStore();
@@ -65,15 +66,16 @@ export default function StorefrontSettingsPage() {
   useEffect(() => {
     if (!currentStore) return;
     const existingWhatsapp = currentStore.contactWhatsapp || '';
+    const existingWhatsappDigits = existingWhatsapp.replace(/\D/g, '');
     let contactWhatsappCountryCode = '234';
     let contactWhatsappLocal = '';
 
-    if (existingWhatsapp) {
-      if (existingWhatsapp.startsWith('234')) {
+    if (existingWhatsappDigits) {
+      if (existingWhatsappDigits.startsWith('234')) {
         contactWhatsappCountryCode = '234';
-        contactWhatsappLocal = existingWhatsapp.slice(3);
+        contactWhatsappLocal = existingWhatsappDigits.slice(3);
       } else {
-        contactWhatsappLocal = existingWhatsapp;
+        contactWhatsappLocal = existingWhatsappDigits;
       }
     }
 
@@ -433,12 +435,14 @@ export default function StorefrontSettingsPage() {
                           <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-[11px] text-slate-500">
                             +
                           </span>
-                          <input
+                            <PhoneNumberInput
                             id="contactWhatsappCountryCode"
                             name="contactWhatsappCountryCode"
-                            type="text"
+                              segment="countryCode"
                             value={form.contactWhatsappCountryCode}
-                            onChange={handleChange}
+                              onChange={(nextValue) =>
+                                setForm((prev) => ({ ...prev, contactWhatsappCountryCode: nextValue }))
+                              }
                             placeholder="234"
                             className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-5 pr-2 py-2 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
                           />
@@ -446,12 +450,14 @@ export default function StorefrontSettingsPage() {
                         <p className="mt-1 text-[10px] text-slate-500">Code</p>
                       </div>
                       <div className="flex-1">
-                        <input
+                        <PhoneNumberInput
                           id="contactWhatsappLocal"
                           name="contactWhatsappLocal"
-                          type="text"
+                          segment="local"
                           value={form.contactWhatsappLocal}
-                          onChange={handleChange}
+                          onChange={(nextValue) =>
+                            setForm((prev) => ({ ...prev, contactWhatsappLocal: nextValue }))
+                          }
                           placeholder="8012345678"
                           className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
                         />
