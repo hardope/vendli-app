@@ -352,6 +352,28 @@ export default function AuthPage() {
               <span className="h-px flex-1 bg-slate-200" />
             </div>
 
+            <p className="mb-4 text-[11px] text-slate-500">
+              By continuing, you agree to our{' '}
+              <a
+                href={`${LANDING_URL}/#terms`}
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium text-slate-700 underline underline-offset-2 hover:text-amber-700"
+              >
+                Terms &amp; Conditions
+              </a>{' '}
+              and{' '}
+              <a
+                href={`${LANDING_URL}/#privacy`}
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium text-slate-700 underline underline-offset-2 hover:text-amber-700"
+              >
+                Privacy Policy
+              </a>
+              .
+            </p>
+
             <form onSubmit={onSubmit} className="space-y-4">
               {mode === 'signin' && (
                 <>
