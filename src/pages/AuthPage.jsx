@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { login, register, getCurrentUser, verifyEmailWithOtp } from '../services/auth.service.js';
 import { updateProfile } from '../services/profile.service.js';
 import { LANDING_URL } from '../config.js';
 import Notify from '../components/Notify.js';
 import { useAuthStore } from '../store/auth.store.js';
 import { useStoreStore } from '../store/store.store.js';
+import { apiConfig } from '../lib/api.js';
 
 function getApiErrorMessage(error) {
   const rawMessage = error?.response?.data?.message;
@@ -23,6 +24,28 @@ function getApiErrorMessage(error) {
   return '';
 }
 
+function parseAuthError(error) {
+  const rawMessage = error?.response?.data?.message;
+
+  if (typeof rawMessage !== 'string') {
+    return null;
+  }
+
+  try {
+    return JSON.parse(rawMessage);
+  } catch {
+    return null;
+  }
+}
+
+function hasCompletedCoreOnboarding(onboarding) {
+  const pendingTasks = Array.isArray(onboarding?.pendingTasks) ? onboarding.pendingTasks : [];
+  const completedTasks = Array.isArray(onboarding?.completedTasks) ? onboarding.completedTasks : [];
+  const criticalPending = pendingTasks.filter((task) => task !== 'CONNECT_PAYOUT');
+
+  return criticalPending.length === 0 && completedTasks.length > 0;
+}
+
 export default function AuthPage() {
   const [mode, setMode] = useState('signin');
   const [form, setForm] = useState({ email: '', password: '', firstName: '', lastName: '' });
@@ -31,78 +54,118 @@ export default function AuthPage() {
   const [showSigninPassword, setShowSigninPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [authRedirectLoading, setAuthRedirectLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { setTokens, setUser, redirectPath, setRedirectPath } = useAuthStore();
   const clearStores = useStoreStore((s) => s.clearStores);
+  const handledGoogleRedirect = useRef(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  const completeAuthSession = useCallback(async (data, successMessage) => {
+    if (!data?.accessToken || !data?.refreshToken) {
+      throw new Error('Unexpected auth response');
+    }
+
+    setTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });
+    clearStores();
+
+    let me = null;
+    try {
+      me = await getCurrentUser();
+    } catch (error) {
+      console.error(error);
+    }
+
+    const user = me?.user || null;
+    const onboarding = me?.onboarding || data.onboarding || null;
+
+    if (user) {
+      setUser(user);
+    }
+
+    const target = hasCompletedCoreOnboarding(onboarding) ? '/dashboard' : '/onboarding';
+
+    if (redirectPath) {
+      setRedirectPath(null);
+    }
+
+    if (successMessage) {
+      Notify.success(successMessage);
+    }
+
+    navigate(target, { replace: true });
+  }, [clearStores, navigate, redirectPath, setRedirectPath, setTokens, setUser]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const accessToken = params.get('accessToken');
+    const refreshToken = params.get('refreshToken');
+
+    const error = params.get('error');
+    if (error) {
+      if (error === 'google_auth_failed') {
+        Notify.error('Google sign-in failed. Please try again or use email sign-in.');
+      }
+    }
+
+    if (!accessToken || !refreshToken) {
+      handledGoogleRedirect.current = false;
+      return;
+    }
+
+    if (handledGoogleRedirect.current) {
+      return;
+    }
+
+    handledGoogleRedirect.current = true;
+    setAuthRedirectLoading(true);
+
+    completeAuthSession(
+      {
+        accessToken,
+        refreshToken,
+      },
+      params.get('provider') === 'google' ? 'Signed in with Google.' : 'Welcome back.',
+    ).catch((error) => {
+      console.error(error);
+      Notify.error('We could not complete the Google sign-in. Please try again.');
+    }).finally(() => {
+      setAuthRedirectLoading(false);
+    });
+  }, [completeAuthSession, location.search]);
+
   const handleSignin = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
       const data = await login({ email: form.email, password: form.password });
-      if (!data.accessToken || !data.refreshToken) {
-        throw new Error('Unexpected login response');
-      }
-      setTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });
-      // New login should always reset any previously selected stores
-      clearStores();
-      let me = null;
-      try {
-        me = await getCurrentUser();
-      } catch (_) {
-        // ignore
-      }
-
-      const user = me?.user || null;
-      const onboarding = me?.onboarding || data.onboarding || null;
-
-      if (user) {
-        setUser(user);
-      }
-
-      const pendingTasks = Array.isArray(onboarding?.pendingTasks) ? onboarding.pendingTasks : [];
-      const completedTasks = Array.isArray(onboarding?.completedTasks) ? onboarding.completedTasks : [];
-      const criticalPending = pendingTasks.filter((task) => task !== 'CONNECT_PAYOUT');
-      const hasCompletedOnboarding = criticalPending.length === 0 && completedTasks.length > 0;
-
-      console.log(`Pending onboarding tasks: ${pendingTasks.join(', ')}`);
-      console.log(`Completed onboarding tasks: ${completedTasks.join(', ')}`);
-
-      console.log(`Has completed onboarding: ${hasCompletedOnboarding}`);
-      console.log(hasCompletedOnboarding ? '/dashboard' : '/onboarding')
-
-      const target = hasCompletedOnboarding ? '/dashboard' : '/onboarding';
-      if (redirectPath) {
-        setRedirectPath(null);
-      }
-      Notify.success('Welcome back.');
-      console.log(`target = ${target}`);
-      navigate(target);
+      await completeAuthSession(data, 'Welcome back.');
     } catch (error) {
       console.error(error);
       const response = error?.response;
-      const rawMessage = response?.data?.message;
+      const parsed = parseAuthError(error);
 
-      if (response?.status === 401 && typeof rawMessage === 'string') {
-        try {
-          const parsed = JSON.parse(rawMessage);
-          if (parsed?.code === 'EMAIL_NOT_VERIFIED') {
-            setMode('signup');
-            setSignupStep('otp');
-            setForm((prev) => ({ ...prev, email: parsed.email || prev.email }));
-            Notify.info(
-              parsed.message ||
-                'Your account is not verified yet. We just sent you a new 6-digit code to your email.',
-            );
-            return;
-          }
-        } catch {
-          // fall through to generic error
+      if (response?.status === 401 && parsed?.code === 'EMAIL_NOT_VERIFIED') {
+        setMode('signup');
+        setSignupStep('otp');
+        setForm((prev) => ({ ...prev, email: parsed.email || prev.email }));
+        Notify.info(
+          parsed.message || 'Your account is not verified yet. We just sent you a new 6-digit code to your email.',
+        );
+        return;
+      }
+
+      if (response?.status === 401 && parsed?.code === 'PASSWORD_NOT_SET') {
+        const email = parsed.email || form.email;
+        if (email) {
+          navigate(`/auth/reset-password?email=${encodeURIComponent(email)}`);
+          Notify.info(parsed.message || 'We sent you a reset code so you can set a password.');
+          return;
         }
       }
 
@@ -110,6 +173,10 @@ export default function AuthPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGoogleAuth = () => {
+    window.location.href = `${apiConfig.apiBaseUrl}/api/auth/google`;
   };
 
   const handleSignup = async (e) => {
@@ -198,6 +265,14 @@ export default function AuthPage() {
 
   const onSubmit = mode === 'signin' ? handleSignin : handleSignup;
 
+  if (authRedirectLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 text-slate-600 text-sm">
+        Completing Google sign-in...
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
       <div className="max-w-4xl w-full grid gap-10 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] items-center">
@@ -247,6 +322,34 @@ export default function AuthPage() {
                   Create account
                 </button>
               </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleGoogleAuth}
+              className="mb-4 w-full inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm transition hover:border-amber-300 hover:bg-amber-50"
+            >
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white">
+                <svg
+                  className="h-4 w-4"
+                  viewBox="0 0 533.5 544.3"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <path fill="#4285F4" d="M533.5 278.4c0-18.5-1.6-36.4-4.7-53.8H272.1v101.9h147.2c-6.4 34.7-25.6 64.1-54.6 83.7v69.5h88.2c51.5-47.5 81.6-117.5 81.6-201.3z"/>
+                  <path fill="#34A853" d="M272.1 544.3c73.9 0 135.9-24.5 181.2-66.7l-88.2-69.5c-24.6 16.5-56.2 26.1-93 26.1-71.4 0-132-48.3-153.6-113.4H23.6v71.4C69.1 477.4 165.5 544.3 272.1 544.3z"/>
+                  <path fill="#FBBC05" d="M118.5 324.5c-10.6-31.5-10.6-65.5 0-97l-95-71.4C2.5 214.9 0 245.3 0 272.9s2.5 58 23.5 116.8l95-64.5z"/>
+                  <path fill="#EA4335" d="M272.1 107.6c39.9 0 75.8 13.7 104 40.7l78-78C406.7 24.9 349.9 0 272.1 0 165.5 0 69.1 66.9 23.6 167.4l95 71.4C140.1 155.9 200.7 107.6 272.1 107.6z"/>
+                </svg>
+              </span>
+              Continue with Google
+            </button>
+
+            <div className="mb-4 flex items-center gap-3 text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+              <span className="h-px flex-1 bg-slate-200" />
+              <span>or use email</span>
+              <span className="h-px flex-1 bg-slate-200" />
             </div>
 
             <form onSubmit={onSubmit} className="space-y-4">
