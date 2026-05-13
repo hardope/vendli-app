@@ -10,6 +10,8 @@ import Notify from '../components/Notify.js';
 import {
   fetchPayoutMethods,
   fetchPayoutRequests,
+  searchPayoutBanks,
+  resolvePayoutAccount,
   startCreatePayoutMethod,
   confirmPayoutMethod,
   createPayoutRequest,
@@ -51,7 +53,7 @@ function SectionHeader({ label, title, action }) {
   );
 }
 
-const EMPTY_METHOD = { label: '', bankName: '', accountName: '', accountNumber: '' };
+const EMPTY_METHOD = { label: '', bankName: '', bankCode: '', accountName: '', accountNumber: '' };
 
 function PayoutModal({ balance, payoutMethods, onClose, onSuccess }) {
   const [amount, setAmount] = useState('');
@@ -237,20 +239,120 @@ function PayoutModal({ balance, payoutMethods, onClose, onSuccess }) {
   );
 }
 
-const FIELDS = [
-  { key: 'label',         label: 'Nickname',           placeholder: 'e.g. Main business account', hint: 'Optional' },
-  { key: 'bankName',      label: 'Bank name',           placeholder: 'e.g. GTBank' },
-  { key: 'accountName',   label: 'Account name',        placeholder: 'e.g. Acme Studios LTD' },
-  { key: 'accountNumber', label: 'Account number',      placeholder: '0123456789' },
-];
-
 function AddAccountModal({ onClose, onSuccess }) {
   const [step, setStep] = useState('details');
   const [method, setMethod] = useState(EMPTY_METHOD);
   const [otpCode, setOtpCode] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const isDetailsValid = method.bankName && method.accountName && method.accountNumber;
+  const [bankQuery, setBankQuery] = useState('');
+  const [bankOptions, setBankOptions] = useState([]);
+  const [searchingBanks, setSearchingBanks] = useState(false);
+  const [resolvingName, setResolvingName] = useState(false);
+  const [resolved, setResolved] = useState(false);
+  const [payoutMethodId, setPayoutMethodId] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    const normalizedQuery = bankQuery.trim().toLowerCase();
+    const selectedBankName = (method.bankName ?? '').trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      setBankOptions([]);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    if (method.bankCode && normalizedQuery === selectedBankName) {
+      setBankOptions([]);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    if (normalizedQuery.length < 2) {
+      setBankOptions([]);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const timer = setTimeout(async () => {
+      setSearchingBanks(true);
+      try {
+        const data = await searchPayoutBanks(bankQuery.trim(), { limit: 20 });
+        if (!cancelled) {
+          setBankOptions(Array.isArray(data?.banks) ? data.banks : []);
+        }
+      } catch {
+        if (!cancelled) {
+          setBankOptions([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setSearchingBanks(false);
+        }
+      }
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [bankQuery, method.bankCode, method.bankName]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!method.bankCode || method.accountNumber.length !== 10) {
+      setResolvingName(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const timer = setTimeout(async () => {
+      setResolvingName(true);
+      try {
+        const data = await resolvePayoutAccount({
+          bankCode: method.bankCode,
+          accountNumber: method.accountNumber,
+        });
+
+        if (cancelled) {
+          return;
+        }
+
+        setMethod((prev) => ({
+          ...prev,
+          bankName: data.bankName,
+          bankCode: data.bankCode,
+          accountName: data.accountName,
+          accountNumber: data.accountNumber,
+        }));
+        setBankQuery(data.bankName);
+        setResolved(true);
+      } catch {
+        if (!cancelled) {
+          setResolved(false);
+          setMethod((prev) => ({ ...prev, accountName: '' }));
+        }
+      } finally {
+        if (!cancelled) {
+          setResolvingName(false);
+        }
+      }
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [method.bankCode, method.accountNumber]);
+
+  const isAccountNumberValid = /^\d{10}$/.test(method.accountNumber);
+  const isDetailsValid = method.bankCode && method.bankName && method.accountName && isAccountNumberValid;
 
   function resolveLabel(payload) {
     const nickname = payload.label?.trim();
@@ -262,10 +364,14 @@ function AddAccountModal({ onClose, onSuccess }) {
     setLoading(true);
     try {
       const normalizedMethod = {
-        ...method,
+        bankCode: method.bankCode,
+        bankName: method.bankName,
+        accountNumber: method.accountNumber,
+        accountName: method.accountName,
         label: resolveLabel(method),
       };
-      await startCreatePayoutMethod(normalizedMethod);
+      const result = await startCreatePayoutMethod(normalizedMethod);
+      setPayoutMethodId(result?.payoutMethodId || '');
       setMethod(normalizedMethod);
       setStep('otp');
     } catch {
@@ -276,9 +382,14 @@ function AddAccountModal({ onClose, onSuccess }) {
   }
 
   async function handleVerify() {
+    if (!payoutMethodId) {
+      Notify.error('Missing payout method reference. Please restart account setup.');
+      return;
+    }
+
     setLoading(true);
     try {
-      await confirmPayoutMethod({ otp: otpCode });
+      await confirmPayoutMethod({ payoutMethodId, otp: otpCode });
       Notify.success('Bank account added successfully.');
       onSuccess();
     } catch {
@@ -338,20 +449,80 @@ function AddAccountModal({ onClose, onSuccess }) {
         {step === 'details' && (
           <>
             <div className="px-5 py-5 space-y-3">
-              {FIELDS.map(({ key, label, placeholder, hint }) => (
-                <div key={key}>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-medium text-slate-700">{label}</label>
-                    {hint && <span className="text-[10px] text-slate-400">{hint}</span>}
+              <div className="relative">
+                <label className="block text-xs font-medium text-slate-700 mb-1">Bank name</label>
+                <input
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-300"
+                  placeholder="Search bank name"
+                  value={bankQuery}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setBankQuery(value);
+                    setResolved(false);
+                    setMethod((m) => ({ ...m, bankName: value, bankCode: '', accountName: '' }));
+                  }}
+                />
+
+                {(searchingBanks || bankOptions.length > 0) && (
+                  <div className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg">
+                    {searchingBanks && <div className="px-3 py-2 text-xs text-slate-500">Searching banks...</div>}
+                    {!searchingBanks && bankOptions.map((bank) => (
+                      <button
+                        key={`${bank.code}-${bank.id}`}
+                        type="button"
+                        className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                        onClick={() => {
+                          setBankQuery(bank.name);
+                          setMethod((m) => ({
+                            ...m,
+                            bankName: bank.name,
+                            bankCode: bank.code,
+                            accountName: '',
+                          }));
+                          setBankOptions([]);
+                          setResolved(false);
+                        }}
+                      >
+                        {bank.name}
+                      </button>
+                    ))}
                   </div>
-                  <input
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-300"
-                    placeholder={placeholder}
-                    value={method[key]}
-                    onChange={(e) => setMethod((m) => ({ ...m, [key]: e.target.value }))}
-                  />
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Account number</label>
+                <input
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-300"
+                  placeholder="0123456789"
+                  inputMode="numeric"
+                  value={method.accountNumber}
+                  onChange={(e) => {
+                    const next = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setResolved(false);
+                    setResolvingName(false);
+                    setMethod((m) => ({ ...m, accountNumber: next, accountName: '' }));
+                  }}
+                />
+              </div>
+
+              {(resolvingName || resolved) && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+                  <p className="text-[11px] text-slate-500 mb-1">Account name</p>
+                  {resolvingName ? (
+                    <div className="flex items-center gap-2 text-sm text-slate-500">
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" strokeDasharray="30" strokeDashoffset="10"/></svg>
+                      Resolving account name…
+                    </div>
+                  ) : (
+                    <p className="text-sm font-medium text-slate-800">{method.accountName}</p>
+                  )}
                 </div>
-              ))}
+              )}
+
+              {resolved && method.accountName && (
+                <p className="text-[11px] text-emerald-600">Account verified. You can continue.</p>
+              )}
             </div>
             <div className="px-5 pb-5 pt-2 border-t border-slate-100 flex gap-3">
               <button
