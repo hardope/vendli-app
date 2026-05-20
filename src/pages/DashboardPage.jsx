@@ -4,9 +4,16 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import DashboardLayout from '../components/DashboardLayout.jsx';
 import { useStoreStore } from '../store/store.store.js';
-import { fetchStoreDashboardSummary } from '../services/dashboard.service.js';
+import { fetchStoreDashboardSummary, fetchRevenueSeriesByDays } from '../services/dashboard.service.js';
 import { useWalletStore } from '../store/wallet.store.js';
 import { formatCurrency } from '../lib/format.js';
+
+const CHART_RANGES = [
+  { label: '7d', days: 7 },
+  { label: '21d', days: 21 },
+  { label: '30d', days: 30 },
+  { label: '3m', days: 90 },
+];
 
 function StarsInline({ value }) {
   const clamped = Number.isFinite(value) ? Math.max(0, Math.min(5, value)) : 0;
@@ -14,15 +21,37 @@ function StarsInline({ value }) {
   return (
     <span className="inline-flex items-center gap-0.5" aria-hidden="true">
       {[1, 2, 3, 4, 5].map((n) => (
-        <span key={n} className={n <= filledCount ? 'text-slate-900' : 'text-slate-300'}>
-          ★
-        </span>
+        <span key={n} className={n <= filledCount ? 'text-slate-900' : 'text-slate-300'}>★</span>
       ))}
     </span>
   );
 }
 
-function RevenueChart({ series }) {
+function RangeToggle({ options, active, onChange, loading }) {
+  return (
+    <div className="flex items-center gap-2">
+      {loading && <span className="text-[10px] text-slate-400 animate-pulse">updating…</span>}
+      <div className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 p-0.5 text-[11px]">
+        {options.map((opt) => (
+          <button
+            key={opt.label}
+            type="button"
+            onClick={() => onChange(opt)}
+            className={`px-3 py-0.5 rounded-full transition-colors whitespace-nowrap ${
+              active === opt.days
+                ? 'bg-white text-slate-900 shadow-sm font-medium'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RevenueChart({ series, days }) {
   const canvasRef = useRef(null);
   const chartRef = useRef(null);
 
@@ -37,14 +66,16 @@ function RevenueChart({ series }) {
         chartRef.current = null;
       }
 
-      const labels = series.map((point) =>
-        new Date(point.date).toLocaleDateString(undefined, {
-          month: 'short',
-          day: 'numeric',
-        })
-      );
-      const revenueData = series.map((point) => point.revenue);
+      const labels = series.map((point) => {
+        const date = new Date(point.date);
+        if (days > 30) return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      });
+
+      const revenueData = series.map((point) => point.revenue ?? 0);
       const viewsData = series.map((point) => point.views ?? 0);
+
+      const maxTicksLimit = days > 30 ? 8 : series.length;
 
       chartRef.current = new window.Chart(canvasRef.current, {
         type: 'line',
@@ -60,7 +91,7 @@ function RevenueChart({ series }) {
               pointBackgroundColor: '#ffffff',
               pointBorderColor: '#f59e0b',
               pointBorderWidth: 2,
-              pointRadius: 4,
+              pointRadius: series.length > 30 ? 0 : 4,
               pointHoverRadius: 6,
               pointHoverBackgroundColor: '#f59e0b',
               tension: 0.4,
@@ -70,15 +101,15 @@ function RevenueChart({ series }) {
             {
               label: 'Store views',
               data: viewsData,
-              borderColor: '#3b82f6',
-              backgroundColor: 'rgba(59, 130, 246, 0.06)',
+              borderColor: '#6366f1',
+              backgroundColor: 'rgba(99, 102, 241, 0.06)',
               borderWidth: 2,
               pointBackgroundColor: '#ffffff',
-              pointBorderColor: '#3b82f6',
+              pointBorderColor: '#6366f1',
               pointBorderWidth: 2,
-              pointRadius: 3,
+              pointRadius: series.length > 30 ? 0 : 3,
               pointHoverRadius: 5,
-              pointHoverBackgroundColor: '#3b82f6',
+              pointHoverBackgroundColor: '#6366f1',
               tension: 0.4,
               fill: true,
               yAxisID: 'y1',
@@ -88,27 +119,32 @@ function RevenueChart({ series }) {
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          interaction: {
-            mode: 'index',
-            intersect: false,
-          },
+          interaction: { mode: 'index', intersect: false },
           plugins: {
-            legend: { display: true, labels: { font: { size: 11 } } },
+            legend: {
+              display: true,
+              labels: {
+                boxWidth: 10,
+                boxHeight: 10,
+                padding: 14,
+                color: '#64748b',
+                font: { size: 11 },
+              },
+            },
             tooltip: {
-              backgroundColor: '#ffffff',
-              titleColor: '#64748b',
-              bodyColor: '#0f172a',
-              borderColor: '#e2e8f0',
+              backgroundColor: '#1e293b',
+              titleColor: '#94a3b8',
+              bodyColor: '#f1f5f9',
+              borderColor: '#334155',
               borderWidth: 1,
-              padding: 10,
+              padding: 12,
+              cornerRadius: 10,
               titleFont: { size: 11, weight: '500' },
               bodyFont: { size: 13, weight: '600' },
               callbacks: {
                 label: (ctx) => {
-                  if (ctx.dataset.label === 'Revenue') {
-                    return `  ${formatCurrency(ctx.parsed.y)}`;
-                  }
-                  return `  ${ctx.parsed.y.toLocaleString()} views`;
+                  if (ctx.dataset.label === 'Revenue') return `  Revenue: ${formatCurrency(ctx.parsed.y)}`;
+                  return `  Views: ${ctx.parsed.y.toLocaleString()}`;
                 },
               },
             },
@@ -120,16 +156,14 @@ function RevenueChart({ series }) {
               ticks: {
                 color: '#94a3b8',
                 font: { size: 11 },
-                autoSkip: false,
+                autoSkip: true,
+                maxTicksLimit,
                 maxRotation: 0,
               },
             },
             y: {
               position: 'right',
-              grid: {
-                color: '#f1f5f9',
-                drawBorder: false,
-              },
+              grid: { color: '#f1f5f9' },
               border: { display: false, dash: [4, 4] },
               ticks: {
                 color: '#94a3b8',
@@ -146,7 +180,6 @@ function RevenueChart({ series }) {
                 color: '#94a3b8',
                 font: { size: 11 },
                 maxTicksLimit: 4,
-                callback: (v) => `${v}`,
               },
             },
           },
@@ -169,15 +202,11 @@ function RevenueChart({ series }) {
         chartRef.current = null;
       }
     };
-  }, [series]);
+  }, [series, days]);
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '180px' }}>
-      <canvas
-        ref={canvasRef}
-        role="img"
-        aria-label="Line chart showing revenue over the last 7 days"
-      />
+    <div style={{ position: 'relative', width: '100%', height: '200px' }}>
+      <canvas ref={canvasRef} role="img" aria-label="Revenue and store views chart" />
     </div>
   );
 }
@@ -188,14 +217,17 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [summary, setSummary] = useState(null);
+  const [chartSeries, setChartSeries] = useState([]);
+  const [chartRange, setChartRange] = useState(7);
+  const [chartLoading, setChartLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
-      console.log('Loading dashboard summary for storeId:', currentStoreId);
       if (!currentStoreId) {
         setSummary(null);
+        setChartSeries([]);
         return;
       }
       setLoading(true);
@@ -205,30 +237,41 @@ export default function DashboardPage() {
         if (!cancelled) {
           setSummary(data);
           setWalletBalance(data.walletBalance ?? 0);
+          const raw = data.revenueSeries ?? [];
+          setChartSeries(raw.map((p) => ({
+            date: p.date,
+            revenue: typeof p.revenue === 'number' ? p.revenue : Number(p.revenue) || 0,
+            views: typeof p.views === 'number' ? p.views : Number(p.views) || 0,
+          })));
         }
-      } catch (err) {
-        if (!cancelled) {
-          setError('We could not load your dashboard metrics.');
-        }
+      } catch {
+        if (!cancelled) setError('We could not load your dashboard metrics.');
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     }
 
     load();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [currentStoreId]);
 
-  const rawSeries = summary?.revenueSeries || [];
-  const series = rawSeries.map((point) => ({
-    date: point.date,
-    revenue: typeof point.revenue === 'number' ? point.revenue : Number(point.revenue) || 0,
-    views: typeof point.views === 'number' ? point.views : Number(point.views) || 0,
-  }));
+  const handleChartRangeChange = async (opt) => {
+    if (opt.days === chartRange || !currentStoreId) return;
+    setChartRange(opt.days);
+    try {
+      setChartLoading(true);
+      const raw = await fetchRevenueSeriesByDays(currentStoreId, opt.days);
+      setChartSeries((raw ?? []).map((p) => ({
+        date: p.date,
+        revenue: typeof p.revenue === 'number' ? p.revenue : Number(p.revenue) || 0,
+        views: typeof p.views === 'number' ? p.views : Number(p.views) || 0,
+      })));
+    } catch {
+      // silent — keep existing series
+    } finally {
+      setChartLoading(false);
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -248,9 +291,7 @@ export default function DashboardPage() {
               <span className="font-medium">
                 {(summary.ratingCount ?? 0) > 0 ? (Number(summary.averageRating) || 0).toFixed(1) : 'No ratings yet'}
               </span>
-              <span className="text-slate-500">
-                {`(${summary.ratingCount ?? 0})`}
-              </span>
+              <span className="text-slate-500">{`(${summary.ratingCount ?? 0})`}</span>
               <span className="text-slate-400">•</span>
               <span className="font-medium">View</span>
             </Link>
@@ -306,17 +347,26 @@ export default function DashboardPage() {
               </div>
             </section>
 
-            <section className="mt-4 rounded-2xl border border-slate-200 bg-white p-5">
-              <div className="flex items-center justify-between mb-5">
+            <section className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+              <div className="flex items-center justify-between gap-3 px-5 pt-4 pb-3 border-b border-slate-100">
                 <div>
-                  <p className="text-xs font-medium text-slate-500">Revenue graph</p>
-                  <p className="text-sm text-slate-800">Last 7 days</p>
+                  <p className="text-xs font-semibold text-slate-700">Revenue graph</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Sales and store views over time</p>
                 </div>
+                <RangeToggle
+                  options={CHART_RANGES}
+                  active={chartRange}
+                  onChange={handleChartRangeChange}
+                  loading={chartLoading}
+                />
               </div>
-              {series.length === 0 && (
-                <p className="text-xs text-slate-500">No revenue yet in the last 7 days.</p>
-              )}
-              {series.length > 0 && <RevenueChart series={series} />}
+              <div className="p-5">
+                {chartSeries.length === 0 ? (
+                  <p className="text-xs text-slate-400 text-center py-6">No data for this period.</p>
+                ) : (
+                  <RevenueChart series={chartSeries} days={chartRange} />
+                )}
+              </div>
             </section>
           </>
         )}
