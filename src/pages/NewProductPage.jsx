@@ -7,6 +7,7 @@ import { useStoreStore } from '../store/store.store.js';
 import { createProduct } from '../services/product.service.js';
 import { uploadFile } from '../services/files.service.js';
 import Notify from '../components/Notify.js';
+import { invalidatePrefix } from '../lib/queryCache.js';
 
 export default function NewProductPage() {
   const navigate = useNavigate();
@@ -85,6 +86,7 @@ export default function NewProductPage() {
       }
 
       await createProduct(currentStoreId, payload);
+      invalidatePrefix(`products:${currentStoreId}`);
       Notify.success('Product created.');
       navigate('/products');
     } catch (e) {

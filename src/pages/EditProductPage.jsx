@@ -5,6 +5,7 @@ import { useStoreStore } from '../store/store.store.js';
 import { fetchProduct, updateProduct } from '../services/product.service.js';
 import { uploadFile } from '../services/files.service.js';
 import Notify from '../components/Notify.js';
+import { invalidatePrefix } from '../lib/queryCache.js';
 
 export default function EditProductPage() {
   const navigate = useNavigate();
@@ -116,6 +117,7 @@ export default function EditProductPage() {
       }
 
       await updateProduct(currentStoreId, productId, payload);
+      invalidatePrefix(`products:${currentStoreId}`);
       navigate('/products');
     } catch (e) {
       setError('Failed to save product.');
@@ -293,7 +295,7 @@ export default function EditProductPage() {
                 {image && (
                   <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 overflow-hidden inline-block">
                     <img src={image} alt="Product image preview" className="h-20 w-32 object-cover" />
-                    <p className="px-2 pb-2 pt-1 text-[11px] text-slate-500 truncate max-w-[10rem]">{image}</p>
+                    <p className="px-2 pb-2 pt-1 text-[11px] text-slate-500 truncate max-w-40">{image}</p>
                   </div>
                 )}
               </div>

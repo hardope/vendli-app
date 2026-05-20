@@ -13,6 +13,8 @@ export const useStoreStore = create(
     }),
     {
       name: 'vendli-stores',
+      // Only persist the active store ID — the stores list is always re-fetched fresh on load
+      partialize: (state) => ({ currentStoreId: state.currentStoreId }),
     },
   ),
 );

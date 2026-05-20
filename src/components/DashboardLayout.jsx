@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Boxes, Palette, CreditCard, FileText, Users, Copy, Star, MessageCircle } from 'lucide-react';
 import { useAuthStore } from '../store/auth.store.js';
@@ -38,7 +38,11 @@ export default function DashboardLayout({ children }) {
   const location = useLocation();
   const signOut = useAuthStore((s) => s.signOut);
   const user = useAuthStore((s) => s.user);
-  const { stores, currentStoreId, setCurrentStoreId, setStores } = useStoreStore();
+  // Split selectors so changes to one value don't re-render the whole layout
+  const stores = useStoreStore((s) => s.stores);
+  const currentStoreId = useStoreStore((s) => s.currentStoreId);
+  const setCurrentStoreId = useStoreStore((s) => s.setCurrentStoreId);
+  const setStores = useStoreStore((s) => s.setStores);
 
   const [storeMenuOpen, setStoreMenuOpen] = useState(false);
   const [copyState, setCopyState] = useState('Copy');
@@ -50,48 +54,55 @@ export default function DashboardLayout({ children }) {
     [stores, currentStoreId],
   );
 
+  // Keep currentStoreId in sync with the loaded stores list.
+  // The useMemo above falls back to stores[0] for display, but pages read
+  // currentStoreId directly for API calls — if it's stale they'd get a 403.
   useEffect(() => {
-    if (!currentStore && stores.length > 0) {
-      setCurrentStoreId(stores[0].id);
+    if (stores.length === 0) return;
+    const valid = stores.some((s) => s.id === currentStoreId);
+    if (!valid) {
+      const preferred = stores.find((s) => s.isDefault) || stores[0];
+      setCurrentStoreId(preferred.id);
     }
-  }, [currentStore, stores, setCurrentStoreId]);
+  }, [stores, currentStoreId, setCurrentStoreId]);
+
+  const fetchingRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadStores() {
-      if (storesLoading || stores.length > 0) return;
-
+      if (fetchingRef.current || stores.length > 0) return;
+      fetchingRef.current = true;
       setStoresLoading(true);
       try {
         const data = await fetchMyStores();
-        // if (cancelled) return;
+        if (cancelled) return;
 
         const items = data.items || [];
         setStores(items);
 
-        if (!currentStoreId && items.length > 0) {
-          const preferred = items.find((s) => s.isDefault) || items[0];
-          if (preferred) {
+        if (items.length > 0) {
+          const validCurrent = items.some((s) => s.id === currentStoreId);
+          if (!validCurrent) {
+            const preferred = items.find((s) => s.isDefault) || items[0];
             setCurrentStoreId(preferred.id);
           }
         }
       } catch {
         // silently ignore store load errors here; pages can handle lack of stores
       } finally {
-        if (!cancelled) {
-          setStoresLoading(false);
-        }
+        fetchingRef.current = false;
+        if (!cancelled) setStoresLoading(false);
       }
     }
 
     loadStores();
 
-
     return () => {
       cancelled = true;
     };
-  }, [storesLoading, stores.length, currentStoreId, setStores, setCurrentStoreId]);
+  }, [stores.length, currentStoreId, setStores, setCurrentStoreId]);
 
   const handleLogout = () => {
     signOut();

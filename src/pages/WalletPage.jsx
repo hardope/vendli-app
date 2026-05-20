@@ -647,13 +647,14 @@ export default function WalletPage() {
       setLoading(true);
       setError(null);
       try {
-        const data = await fetchWallet(page, pageSize);
+        const [data, methods, requests] = await Promise.all([
+          fetchWallet(page, pageSize),
+          fetchPayoutMethods(),
+          fetchPayoutRequests(),
+        ]);
         if (!cancelled) {
           setWallet(data);
           setWalletBalance(data.balance ?? 0);
-        }
-        const [methods, requests] = await Promise.all([fetchPayoutMethods(), fetchPayoutRequests()]);
-        if (!cancelled) {
           setPayoutMethods(methods ?? []);
           setPayoutRequests(requests ?? []);
         }

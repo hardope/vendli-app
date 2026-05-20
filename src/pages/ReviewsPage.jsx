@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import DashboardLayout from '../components/DashboardLayout.jsx';
 import { useStoreStore } from '../store/store.store.js';
 import { fetchStoreReviewsForSeller } from '../services/reviews.service.js';
@@ -26,14 +26,17 @@ function StarsInline({ value }) {
   );
 }
 
+const DEFAULT_PAGE_SIZE = 10;
+
 export default function ReviewsPage() {
   const { currentStoreId } = useStoreStore();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [payload, setPayload] = useState(null);
 
-  const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const page = Math.max(1, Number(searchParams.get('page')) || 1);
+  const pageSize = Math.min(50, Math.max(1, Number(searchParams.get('pageSize')) || DEFAULT_PAGE_SIZE));
 
   const items = payload?.items || [];
   const total = typeof payload?.total === 'number' ? payload.total : 0;
@@ -78,7 +81,16 @@ export default function ReviewsPage() {
     return () => {
       cancelled = true;
     };
-  }, [currentStoreId, page]);
+  }, [currentStoreId, page, pageSize]);
+
+  const setPage = (newPage) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (newPage <= 1) next.delete('page');
+      else next.set('page', String(newPage));
+      return next;
+    }, { replace: true });
+  };
 
   return (
     <DashboardLayout>
@@ -148,7 +160,7 @@ export default function ReviewsPage() {
                 <button
                   type="button"
                   className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 disabled:opacity-50"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  onClick={() => setPage(Math.max(1, page - 1))}
                   disabled={page <= 1}
                 >
                   Previous
@@ -159,7 +171,7 @@ export default function ReviewsPage() {
                 <button
                   type="button"
                   className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 disabled:opacity-50"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  onClick={() => setPage(Math.min(totalPages, page + 1))}
                   disabled={page >= totalPages}
                 >
                   Next

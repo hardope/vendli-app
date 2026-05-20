@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import DashboardLayout from '../components/DashboardLayout.jsx';
 import { useStoreStore } from '../store/store.store.js';
@@ -187,14 +187,9 @@ function RevenueChart({ series, days }) {
       });
     };
 
-    if (window.Chart) {
-      loadChart();
-    } else {
-      const script = document.createElement('script');
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js';
-      script.onload = loadChart;
-      document.head.appendChild(script);
-    }
+    // Chart.js loaded globally via index.html
+    if (!window.Chart) return;
+    loadChart();
 
     return () => {
       if (chartRef.current) {
@@ -220,6 +215,11 @@ export default function DashboardPage() {
   const [chartSeries, setChartSeries] = useState([]);
   const [chartRange, setChartRange] = useState(7);
   const [chartLoading, setChartLoading] = useState(false);
+  const chartRangeTimer = useRef(null);
+
+  useEffect(() => {
+    return () => { if (chartRangeTimer.current) clearTimeout(chartRangeTimer.current); };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -255,23 +255,27 @@ export default function DashboardPage() {
     return () => { cancelled = true; };
   }, [currentStoreId]);
 
-  const handleChartRangeChange = async (opt) => {
+  const handleChartRangeChange = useCallback((opt) => {
     if (opt.days === chartRange || !currentStoreId) return;
-    setChartRange(opt.days);
-    try {
-      setChartLoading(true);
-      const raw = await fetchRevenueSeriesByDays(currentStoreId, opt.days);
-      setChartSeries((raw ?? []).map((p) => ({
-        date: p.date,
-        revenue: typeof p.revenue === 'number' ? p.revenue : Number(p.revenue) || 0,
-        views: typeof p.views === 'number' ? p.views : Number(p.views) || 0,
-      })));
-    } catch {
-      // silent — keep existing series
-    } finally {
-      setChartLoading(false);
-    }
-  };
+    setChartRange(opt.days); // update toggle visually immediately
+
+    if (chartRangeTimer.current) clearTimeout(chartRangeTimer.current);
+    chartRangeTimer.current = setTimeout(async () => {
+      try {
+        setChartLoading(true);
+        const raw = await fetchRevenueSeriesByDays(currentStoreId, opt.days);
+        setChartSeries((raw ?? []).map((p) => ({
+          date: p.date,
+          revenue: typeof p.revenue === 'number' ? p.revenue : Number(p.revenue) || 0,
+          views: typeof p.views === 'number' ? p.views : Number(p.views) || 0,
+        })));
+      } catch {
+        // silent — keep existing series
+      } finally {
+        setChartLoading(false);
+      }
+    }, 300);
+  }, [chartRange, currentStoreId]);
 
   return (
     <DashboardLayout>
