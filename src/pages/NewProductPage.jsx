@@ -188,21 +188,9 @@ export default function NewProductPage() {
     <DashboardLayout>
       <div className="max-w-5xl mx-auto space-y-5">
         {/* Page header */}
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <button
-              type="button"
-              onClick={() => navigate('/products')}
-              className="text-xs text-slate-400 hover:text-slate-600 transition-colors mb-1 flex items-center gap-1"
-            >
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
-                <path d="M10 3L5 8l5 5" />
-              </svg>
-              Products
-            </button>
-            <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-0.5">New product</p>
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Add product</h1>
-          </div>
+        <div>
+          <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-0.5">New product</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Add product</h1>
         </div>
 
         <div className="grid gap-5 md:grid-cols-3 items-start">

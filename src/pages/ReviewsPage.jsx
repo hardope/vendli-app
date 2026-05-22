@@ -103,16 +103,6 @@ export default function ReviewsPage() {
       <div className="max-w-5xl mx-auto space-y-6">
         {/* Page header */}
         <div>
-          <button
-            type="button"
-            onClick={() => window.history.back()}
-            className="text-xs text-slate-400 hover:text-slate-600 transition-colors mb-1 flex items-center gap-1"
-          >
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
-              <path d="M10 3L5 8l5 5" />
-            </svg>
-            Dashboard
-          </button>
           <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-0.5">Feedback</p>
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Ratings & reviews</h1>
         </div>

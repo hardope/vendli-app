@@ -349,8 +349,11 @@ export default function ProductsPage() {
                               className="inline-flex items-center justify-center rounded-lg px-2 py-1.5 text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors"
                               title="Copy product link"
                             >
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5" aria-hidden="true">
-                                <path d="M7.75 2a.75.75 0 0 1 .75.75V7h4.25a.75.75 0 0 1 0 1.5H8.5v4.25a.75.75 0 0 1-1.5 0V8.5H2.75a.75.75 0 0 1 0-1.5H7V2.75A.75.75 0 0 1 7.75 2Z" />
+                              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden="true">
+                                <circle cx="12" cy="3" r="1.5" />
+                                <circle cx="12" cy="13" r="1.5" />
+                                <circle cx="4" cy="8" r="1.5" />
+                                <path d="M10.5 4l-5 3M10.5 12l-5-3" />
                               </svg>
                             </button>
                           </div>

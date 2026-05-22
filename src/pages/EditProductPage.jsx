@@ -188,16 +188,6 @@ export default function EditProductPage() {
       <div className="max-w-5xl mx-auto space-y-5">
         {/* Page header */}
         <div>
-          <button
-            type="button"
-            onClick={() => navigate('/products')}
-            className="text-xs text-slate-400 hover:text-slate-600 transition-colors mb-1 flex items-center gap-1"
-          >
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
-              <path d="M10 3L5 8l5 5" />
-            </svg>
-            Products
-          </button>
           <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-0.5">Edit product</p>
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
             {loading ? <span className="inline-block h-7 w-48 bg-slate-100 rounded-lg animate-pulse" /> : (name || 'Edit product')}

@@ -8,16 +8,30 @@ import { fetchStoreOrder, updateStoreOrderStatus } from '../services/order.servi
 import { formatCurrency } from '../lib/format.js';
 
 function StatusBadge({ status }) {
-  const base = 'inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide';
   const map = {
-    PENDING: 'bg-slate-100 text-slate-700 border border-slate-200',
+    PENDING: 'bg-slate-100 text-slate-600 border border-slate-200',
     PAID: 'bg-amber-50 text-amber-800 border border-amber-200',
     FULFILLED: 'bg-emerald-50 text-emerald-800 border border-emerald-200',
-    CANCELLED: 'bg-rose-50 text-rose-800 border border-rose-200',
-    REFUNDED: 'bg-rose-50 text-rose-800 border border-rose-200',
+    CANCELLED: 'bg-rose-50 text-rose-700 border border-rose-200',
+    REFUNDED: 'bg-rose-50 text-rose-700 border border-rose-200',
   };
-  const cls = map[status] || 'bg-slate-100 text-slate-700 border border-slate-200';
-  return <span className={`${base} ${cls}`}>{status}</span>;
+  return (
+    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide ${map[status] || 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
+      {status}
+    </span>
+  );
+}
+
+function SectionCard({ children, className = '' }) {
+  return <div className={`rounded-2xl border border-slate-200 bg-white overflow-hidden ${className}`}>{children}</div>;
+}
+
+function SectionHeader({ children }) {
+  return (
+    <div className="px-5 pt-5 pb-4 border-b border-slate-100 flex items-center justify-between gap-3">
+      {children}
+    </div>
+  );
 }
 
 export default function OrderDetailPage() {
@@ -34,217 +48,252 @@ export default function OrderDetailPage() {
     let cancelled = false;
 
     async function load() {
-      if (!currentStoreId || !orderId) {
-        setOrder(null);
-        return;
-      }
+      if (!currentStoreId || !orderId) { setOrder(null); return; }
       setLoading(true);
       setError(null);
       try {
         const data = await fetchStoreOrder(currentStoreId, orderId);
-        if (!cancelled) {
-          setOrder(data);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError('We could not load this order.');
-        }
+        if (!cancelled) setOrder(data);
+      } catch {
+        if (!cancelled) setError('We could not load this order.');
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     }
 
     load();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [currentStoreId, orderId]);
 
   const latestPayment = useMemo(() => {
-    if (!order || !order.payments || order.payments.length === 0) return null;
+    if (!order?.payments?.length) return null;
     return order.payments[0];
   }, [order]);
 
   const delivery = order?.deliveryDetails || {};
   const customer = order?.customer || {};
-
-  const canFulfil = order && order.status === 'PAID';
-  const canCancel = order && (order.status === 'PAID' || order.status === 'PENDING');
+  const canFulfil = order?.status === 'PAID';
+  const canCancel = order?.status === 'PAID' || order?.status === 'PENDING';
 
   const handleStatusChange = async (next) => {
     if (!currentStoreId || !orderId) return;
-    if (next === 'FULFILLED') {
-      const ok = window.confirm('Mark this order as fulfilled? This means you have completed the order for this customer.');
-      if (!ok) return;
-    }
-    if (next === 'CANCELLED') {
-      const ok = window.confirm('Cancel this order? This will mark the order as cancelled for the customer.');
-      if (!ok) return;
-    }
+    const confirmMsg = next === 'FULFILLED'
+      ? 'Mark this order as fulfilled?'
+      : 'Cancel this order?';
+    if (!window.confirm(confirmMsg)) return;
     setSaving(true);
     try {
       const updated = await updateStoreOrderStatus(currentStoreId, orderId, next);
       setOrder(updated);
-    } catch (err) {
-      // you can show a toast here later
     } finally {
       setSaving(false);
     }
   };
 
+  const placedDate = order?.createdAt
+    ? new Date(order.createdAt).toLocaleDateString('en-GB', {
+        day: 'numeric', month: 'long', year: 'numeric',
+      })
+    : '—';
+
+  const placedTime = order?.createdAt
+    ? new Date(order.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+    : '';
+
   return (
     <DashboardLayout>
       <div className="max-w-5xl mx-auto space-y-6">
-        <div>
-          <button
-            type="button"
-            onClick={() => navigate('/orders')}
-            className="text-xs text-slate-400 hover:text-slate-600 transition-colors mb-1 flex items-center gap-1"
-          >
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
-              <path d="M10 3L5 8l5 5" />
-            </svg>
-            Orders
-          </button>
-          <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-0.5">Order</p>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Order details</h1>
+        {/* Page header */}
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-0.5">Order</p>
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-900 font-mono">
+              {order ? `#${order.id.slice(0, 8).toUpperCase()}` : 'Order details'}
+            </h1>
+          </div>
+          {order && (
+            <div className="flex items-center gap-2 pt-1 shrink-0">
+              {canFulfil && (
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => handleStatusChange('FULFILLED')}
+                  className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] font-medium text-emerald-800 hover:bg-emerald-100 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                >
+                  Mark fulfilled
+                </button>
+              )}
+              {canCancel && (
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => handleStatusChange('CANCELLED')}
+                  className="inline-flex items-center rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-[11px] font-medium text-rose-700 hover:bg-rose-100 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                >
+                  Cancel order
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {!currentStoreId && (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-4 text-sm text-slate-600">
             Pick or create a store first from the sidebar to see orders.
           </div>
         )}
 
-        {currentStoreId && (
+        {currentStoreId && error && (
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
+            {error}
+          </div>
+        )}
+
+        {currentStoreId && loading && (
+          <div className="space-y-4 animate-pulse">
+            <div className="rounded-2xl border border-slate-200 bg-white px-5 py-5 space-y-3">
+              <div className="h-4 w-24 bg-slate-100 rounded" />
+              <div className="h-3 w-48 bg-slate-100 rounded" />
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              {[0, 1].map((i) => (
+                <div key={i} className="rounded-2xl border border-slate-200 bg-white px-5 py-5 space-y-3">
+                  <div className="h-3 w-20 bg-slate-100 rounded" />
+                  <div className="h-3 w-36 bg-slate-100 rounded" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {currentStoreId && !loading && !error && order && (
           <>
-            {loading && <p className="text-xs text-slate-500">Loading order…</p>}
-            {error && !loading && (
-              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                {error}
-              </div>
-            )}
-
-            {!loading && !error && order && (
-              <>
-                <section className="rounded-2xl border border-slate-200 bg-white p-5 flex flex-col gap-3">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-xs font-medium text-slate-500">Order ID</p>
-                      <p className="text-sm font-mono text-slate-900">{order.id}</p>
-                      <div className="mt-2 flex items-center gap-2 text-[11px] text-slate-500">
-                        <span>Status:</span>
-                        <StatusBadge status={order.status} />
-                      </div>
-                      <p className="mt-1 text-[11px] text-slate-500">
-                        Placed on{' '}
-                        {new Date(order.createdAt).toLocaleString(undefined, {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </p>
-                    </div>
-                    <div className="text-right text-xs text-slate-500 space-y-1">
-                      <p>
-                        Total amount:{' '}
-                        <span className="font-semibold text-slate-900">{formatCurrency(order.totalAmount)}</span>
-                      </p>
-                      {latestPayment && (
-                        <p>
-                          Payment status:{' '}
-                          <span className="font-medium text-slate-800">{latestPayment.status}</span>
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mt-3 flex flex-wrap gap-4 text-xs text-slate-600">
-                    <div className="flex-1 min-w-50">
-                      <p className="text-[11px] font-semibold text-slate-500 uppercase mb-1">Customer</p>
-                      <p className="text-sm text-slate-900">{customer.name || customer.email || 'Guest'}</p>
-                      {customer.email && <p className="mt-0.5">{customer.email}</p>}
-                      {customer.phone && <p className="mt-0.5">{customer.phone}</p>}
-                    </div>
-                    <div className="flex-1 min-w-50">
-                      <p className="text-[11px] font-semibold text-slate-500 uppercase mb-1">Delivery</p>
-                      {delivery.deliveryAddress && <p className="mt-0.5">{delivery.deliveryAddress}</p>}
-                      {delivery.deliveryLocation && <p className="mt-0.5">{delivery.deliveryLocation}</p>}
-                      {delivery.note && <p className="mt-0.5 text-slate-500">Note: {delivery.note}</p>}
-                    </div>
-                  </div>
-
-                  <div className="mt-3 flex items-center gap-2 text-[11px] text-slate-500">
-                    {canFulfil && (
-                      <button
-                        type="button"
-                        disabled={saving}
-                        onClick={() => handleStatusChange('FULFILLED')}
-                        className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] font-medium text-emerald-800 hover:border-emerald-300 hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Mark as fulfilled
-                      </button>
-                    )}
-                    {canCancel && (
-                      <button
-                        type="button"
-                        disabled={saving}
-                        onClick={() => handleStatusChange('CANCELLED')}
-                        className="inline-flex items-center rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-[11px] font-medium text-rose-800 hover:border-rose-300 hover:bg-rose-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Cancel order
-                      </button>
-                    )}
-                  </div>
-                </section>
-
-                <section className="rounded-2xl border border-slate-200 bg-white p-5">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <p className="text-xs font-medium text-slate-500">Items</p>
-                      <p className="text-sm text-slate-800">Products in this order</p>
-                    </div>
-                  </div>
-
-                  {order.items && order.items.length > 0 ? (
-                    <div className="overflow-hidden rounded-xl border border-slate-100">
-                      <table className="min-w-full text-xs">
-                        <thead className="bg-slate-50/80">
-                          <tr className="text-left text-[11px] text-slate-500">
-                            <th className="px-3 py-2 font-medium">Product</th>
-                            <th className="px-3 py-2 font-medium text-right">Quantity</th>
-                            <th className="px-3 py-2 font-medium text-right">Unit price</th>
-                            <th className="px-3 py-2 font-medium text-right">Line total</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 bg-white/80">
-                          {order.items.map((item) => {
-                            const product = item.product || {};
-                            const baseName = product.name || 'Product';
-                            const label = item.variant?.label ? `${baseName} (${item.variant.label})` : baseName;
-                            const lineTotal = (item.unitPrice || 0) * (item.quantity || 0);
-                            return (
-                              <tr key={item.id} className="text-[11px] text-slate-700">
-                                <td className="px-3 py-2 max-w-xs truncate">{label}</td>
-                                <td className="px-3 py-2 text-right">{item.quantity}</td>
-                                <td className="px-3 py-2 text-right">{formatCurrency(item.unitPrice)}</td>
-                                <td className="px-3 py-2 text-right font-semibold text-slate-900">{formatCurrency(lineTotal)}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-slate-500">No items recorded for this order.</p>
+            {/* Overview */}
+            <SectionCard>
+              <SectionHeader>
+                <p className="text-sm font-semibold text-slate-900">Overview</p>
+                <StatusBadge status={order.status} />
+              </SectionHeader>
+              <div className="px-5 py-5 flex flex-col sm:flex-row sm:items-center gap-6">
+                <div className="flex-1 space-y-1">
+                  <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Order ID</p>
+                  <p className="text-sm font-mono text-slate-900 break-all">{order.id}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Placed</p>
+                  <p className="text-sm text-slate-900">{placedDate}</p>
+                  {placedTime && <p className="text-[11px] text-slate-500">{placedTime}</p>}
+                </div>
+                <div className="space-y-1 sm:text-right">
+                  <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Total</p>
+                  <p className="text-2xl font-semibold text-slate-900">{formatCurrency(order.totalAmount)}</p>
+                  {latestPayment && (
+                    <p className="text-[11px] text-slate-500">Payment: {latestPayment.status}</p>
                   )}
-                </section>
-              </>
-            )}
+                </div>
+              </div>
+            </SectionCard>
+
+            {/* Customer + Delivery */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <SectionCard>
+                <SectionHeader>
+                  <p className="text-sm font-semibold text-slate-900">Customer</p>
+                </SectionHeader>
+                <div className="px-5 py-5 space-y-3">
+                  <div>
+                    <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1">Name</p>
+                    <p className="text-sm text-slate-900">{customer.name || customer.email || 'Guest'}</p>
+                  </div>
+                  {customer.email && (
+                    <div>
+                      <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1">Email</p>
+                      <p className="text-sm text-slate-900 break-all">{customer.email}</p>
+                    </div>
+                  )}
+                  {customer.phone && (
+                    <div>
+                      <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1">Phone</p>
+                      <p className="text-sm text-slate-900">{customer.phone}</p>
+                    </div>
+                  )}
+                </div>
+              </SectionCard>
+
+              <SectionCard>
+                <SectionHeader>
+                  <p className="text-sm font-semibold text-slate-900">Delivery</p>
+                </SectionHeader>
+                <div className="px-5 py-5 space-y-3">
+                  {delivery.deliveryAddress ? (
+                    <div>
+                      <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1">Address</p>
+                      <p className="text-sm text-slate-900">{delivery.deliveryAddress}</p>
+                    </div>
+                  ) : null}
+                  {delivery.deliveryLocation ? (
+                    <div>
+                      <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1">Location</p>
+                      <p className="text-sm text-slate-900">{delivery.deliveryLocation}</p>
+                    </div>
+                  ) : null}
+                  {delivery.note ? (
+                    <div>
+                      <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1">Note</p>
+                      <p className="text-sm text-slate-600 italic">{delivery.note}</p>
+                    </div>
+                  ) : null}
+                  {!delivery.deliveryAddress && !delivery.deliveryLocation && !delivery.note && (
+                    <p className="text-sm text-slate-500">No delivery details.</p>
+                  )}
+                </div>
+              </SectionCard>
+            </div>
+
+            {/* Items */}
+            <SectionCard>
+              <SectionHeader>
+                <p className="text-sm font-semibold text-slate-900">Items</p>
+                <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
+                  {order.items?.length || 0} item{order.items?.length !== 1 ? 's' : ''}
+                </span>
+              </SectionHeader>
+
+              {order.items && order.items.length > 0 ? (
+                <>
+                  <div className="divide-y divide-slate-100">
+                    {order.items.map((item) => {
+                      const prod = item.product || {};
+                      const baseName = prod.name || 'Product';
+                      const label = item.variant?.label ? `${baseName} (${item.variant.label})` : baseName;
+                      const lineTotal = (item.unitPrice || 0) * (item.quantity || 0);
+                      return (
+                        <div key={item.id} className="flex items-center gap-4 px-5 py-4">
+                          {prod.image && (
+                            <img src={prod.image} alt={baseName} className="h-10 w-10 rounded-lg object-cover border border-slate-100 shrink-0" />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-slate-900 truncate">{label}</p>
+                            <p className="text-[11px] text-slate-500">
+                              {formatCurrency(item.unitPrice)} × {item.quantity}
+                            </p>
+                          </div>
+                          <p className="text-sm font-semibold text-slate-900 shrink-0">{formatCurrency(lineTotal)}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="px-5 py-4 border-t border-slate-100 flex items-center justify-between">
+                    <p className="text-xs font-medium text-slate-500">Order total</p>
+                    <p className="text-sm font-semibold text-slate-900">{formatCurrency(order.totalAmount)}</p>
+                  </div>
+                </>
+              ) : (
+                <div className="px-5 py-8 text-center">
+                  <p className="text-sm text-slate-500">No items recorded for this order.</p>
+                </div>
+              )}
+            </SectionCard>
           </>
         )}
       </div>

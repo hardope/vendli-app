@@ -6,7 +6,27 @@ import DashboardLayout from '../components/DashboardLayout.jsx';
 import { useStoreStore } from '../store/store.store.js';
 import { fetchStoreCustomers } from '../services/customer.service.js';
 import { formatCurrency } from '../lib/format.js';
-import { SkeletonTableRow } from '../components/Skeleton.jsx';
+
+function SectionCard({ children }) {
+  return <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">{children}</div>;
+}
+
+function SectionHeader({ children }) {
+  return (
+    <div className="px-5 pt-5 pb-4 border-b border-slate-100 flex items-center justify-between gap-3">
+      {children}
+    </div>
+  );
+}
+
+function CustomerAvatar({ name }) {
+  const letter = (name || '?')[0].toUpperCase();
+  return (
+    <div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+      <span className="text-sm font-semibold text-slate-500">{letter}</span>
+    </div>
+  );
+}
 
 const DEFAULT_PAGE_SIZE = 20;
 
@@ -34,9 +54,7 @@ export default function CustomersPage() {
       setError(null);
       try {
         const data = await fetchStoreCustomers(currentStoreId, page, pageSize);
-        if (!cancelled) {
-          setResult({ items: data.items || [], total: data.total || 0 });
-        }
+        if (!cancelled) setResult({ items: data.items || [], total: data.total || 0 });
       } catch {
         if (!cancelled) setError('We could not load your customers.');
       } finally {
@@ -51,8 +69,6 @@ export default function CustomersPage() {
   const items = result.items || [];
   const total = result.total || 0;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const hasPrev = page > 1;
-  const hasNext = page < totalPages;
 
   const setPage = (newPage) => {
     setSearchParams((prev) => {
@@ -65,123 +81,112 @@ export default function CustomersPage() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-6xl mx-auto space-y-6">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs text-slate-500">Customers</p>
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Store customers</h1>
-            <p className="mt-1 text-[11px] text-slate-500">See who has ordered from this store and how much they have spent.</p>
-          </div>
+      <div className="max-w-5xl mx-auto space-y-6">
+        <div>
+          <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-0.5">Audience</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Customers</h1>
         </div>
 
         {!currentStoreId && (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-4 text-sm text-slate-600">
             Pick or create a store first from the sidebar to see customers.
           </div>
         )}
 
-        {currentStoreId && (
-          <section className="rounded-2xl border border-slate-200 bg-white p-5">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <p className="text-xs font-medium text-slate-500">Customers</p>
-                <p className="text-sm text-slate-800">People who have ordered from this store</p>
-              </div>
+        {currentStoreId && error && (
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
+            {error}
+          </div>
+        )}
+
+        {currentStoreId && !error && (
+          <SectionCard>
+            <SectionHeader>
+              <p className="text-sm font-semibold text-slate-900">All customers</p>
               {!loading && (
-                <p className="text-[11px] text-slate-500">Showing {items.length} of {total} customers</p>
+                <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
+                  {total} total
+                </span>
               )}
-            </div>
+            </SectionHeader>
 
-            {error && !loading && (
-              <p className="text-xs text-rose-600">{error}</p>
+            {loading ? (
+              <div className="divide-y divide-slate-100 animate-pulse">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-4 px-5 py-4">
+                    <div className="h-9 w-9 rounded-full bg-slate-100 shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3 w-32 bg-slate-100 rounded" />
+                      <div className="h-3 w-44 bg-slate-100 rounded" />
+                    </div>
+                    <div className="text-right space-y-2">
+                      <div className="h-3 w-20 bg-slate-100 rounded ml-auto" />
+                      <div className="h-3 w-12 bg-slate-100 rounded ml-auto" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : items.length === 0 ? (
+              <div className="px-5 py-12 text-center">
+                <p className="text-sm font-medium text-slate-500">No customers yet</p>
+                <p className="mt-1 text-xs text-slate-400">Buyers will appear here after their first order.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {items.map((customer) => {
+                  const name = customer.name || customer.email || 'Guest';
+                  const subtitle = customer.name && customer.email ? customer.email : customer.phone || null;
+                  return (
+                    <div
+                      key={customer.id}
+                      className="flex items-center gap-4 px-5 py-4 hover:bg-slate-50 cursor-pointer transition-colors"
+                      onClick={() => navigate(`/customers/${customer.id}`)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(`/customers/${customer.id}`); }}
+                    >
+                      <CustomerAvatar name={name} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-slate-900 truncate">{name}</p>
+                        {subtitle && (
+                          <p className="text-[11px] text-slate-500 truncate">{subtitle}</p>
+                        )}
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-xs font-semibold text-slate-900">{formatCurrency(customer.totalSpent)}</p>
+                        <p className="text-[11px] text-slate-500">{customer.totalOrders} order{customer.totalOrders !== 1 ? 's' : ''}</p>
+                      </div>
+                      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 text-slate-300 shrink-0">
+                        <path d="M6 3l5 5-5 5" />
+                      </svg>
+                    </div>
+                  );
+                })}
+              </div>
             )}
 
-            {!error && (
-              loading ? (
-                <div className="overflow-x-auto rounded-xl border border-slate-100">
-                  <table className="min-w-full text-xs">
-                    <thead className="bg-slate-50/80">
-                      <tr className="text-left text-[11px] text-slate-500">
-                        <th className="px-3 py-2 font-medium">Customer</th>
-                        <th className="px-3 py-2 font-medium">Email</th>
-                        <th className="px-3 py-2 font-medium">Phone</th>
-                        <th className="px-3 py-2 font-medium text-right">Orders</th>
-                        <th className="px-3 py-2 font-medium text-right">Total spent</th>
-                        <th className="px-3 py-2 font-medium text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white/80">
-                      {Array.from({ length: 8 }).map((_, i) => (
-                        <SkeletonTableRow key={i} cols={6} />
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : items.length === 0 ? (
-                <p className="text-xs text-slate-500">No customers yet. New buyers will appear here.</p>
-              ) : (
-                <div className="overflow-x-auto rounded-xl border border-slate-100">
-                  <table className="min-w-full text-xs">
-                    <thead className="bg-slate-50/80">
-                      <tr className="text-left text-[11px] text-slate-500">
-                        <th className="px-3 py-2 font-medium">Customer</th>
-                        <th className="px-3 py-2 font-medium">Email</th>
-                        <th className="px-3 py-2 font-medium">Phone</th>
-                        <th className="px-3 py-2 font-medium text-right">Orders</th>
-                        <th className="px-3 py-2 font-medium text-right">Total spent</th>
-                        <th className="px-3 py-2 font-medium text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white/80">
-                      {items.map((customer) => {
-                        const name = customer.name || customer.email || 'Guest';
-                        return (
-                          <tr key={customer.id} className="text-[11px] text-slate-700">
-                            <td className="px-3 py-2 max-w-xs truncate">{name}</td>
-                            <td className="px-3 py-2 max-w-xs truncate">{customer.email || '—'}</td>
-                            <td className="px-3 py-2 max-w-xs truncate">{customer.phone || '—'}</td>
-                            <td className="px-3 py-2 text-right">{customer.totalOrders}</td>
-                            <td className="px-3 py-2 text-right font-semibold text-slate-900">{formatCurrency(customer.totalSpent)}</td>
-                            <td className="px-3 py-2 text-right">
-                              <button
-                                type="button"
-                                onClick={() => navigate(`/customers/${customer.id}`)}
-                                className="inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] text-slate-600 hover:border-slate-300 hover:bg-slate-50"
-                              >
-                                View
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )
-            )}
-
-            <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500">
-              <p>Page {page} of {totalPages}</p>
-              <div className="flex items-center gap-2">
+            {!loading && totalPages > 1 && (
+              <div className="px-5 py-4 border-t border-slate-100 flex items-center justify-between gap-3">
                 <button
                   type="button"
-                  disabled={!hasPrev || loading}
+                  disabled={page <= 1}
                   onClick={() => setPage(page - 1)}
-                  className="px-2.5 py-1 rounded-full border border-slate-200 bg-white text-[11px] disabled:opacity-40 disabled:cursor-not-allowed hover:border-slate-300 hover:bg-slate-50"
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:pointer-events-none"
                 >
                   Previous
                 </button>
+                <p className="text-xs text-slate-500">Page {page} of {totalPages}</p>
                 <button
                   type="button"
-                  disabled={!hasNext || loading}
+                  disabled={page >= totalPages}
                   onClick={() => setPage(page + 1)}
-                  className="px-2.5 py-1 rounded-full border border-slate-200 bg-white text-[11px] disabled:opacity-40 disabled:cursor-not-allowed hover:border-slate-300 hover:bg-slate-50"
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:pointer-events-none"
                 >
                   Next
                 </button>
               </div>
-            </div>
-          </section>
+            )}
+          </SectionCard>
         )}
       </div>
     </DashboardLayout>
