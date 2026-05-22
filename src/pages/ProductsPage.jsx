@@ -173,16 +173,17 @@ export default function ProductsPage() {
   return (
     <DashboardLayout>
       <div className="max-w-6xl mx-auto space-y-6">
+        {/* Header */}
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs text-slate-500">Catalog</p>
+            <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-0.5">Catalog</p>
             <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Products</h1>
           </div>
           {currentStoreId && (
             <button
               type="button"
               onClick={() => navigate('/products/new')}
-              className="inline-flex items-center justify-center rounded-full bg-amber-400 text-slate-950 text-xs font-semibold px-4 py-2 hover:bg-amber-300 transition-colors"
+              className="inline-flex items-center justify-center rounded-full bg-slate-900 text-white text-sm font-semibold px-4 py-2 hover:bg-slate-800 transition-colors"
             >
               Add product
             </button>
@@ -190,184 +191,166 @@ export default function ProductsPage() {
         </div>
 
         {!currentStoreId && (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-4 text-sm text-slate-500">
             Pick or create a store from the sidebar to manage its products.
           </div>
         )}
 
         {currentStoreId && (
           <>
-            <section className="rounded-2xl border border-slate-200 bg-white p-4 flex flex-col gap-3">
-              <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 text-xs">
-                <input
-                  type="text"
-                  placeholder="Search products…"
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  className="flex-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
-                />
-                {search && (
-                  <button
-                    type="button"
-                    onClick={handleClearSearch}
-                    className="px-2 py-1 text-[11px] text-slate-500 hover:text-slate-700"
-                  >
-                    Clear
-                  </button>
-                )}
-                <button
-                  type="submit"
-                  className="inline-flex items-center justify-center rounded-full bg-slate-900 text-white text-[11px] font-medium px-3 py-1.5 hover:bg-slate-800"
-                >
-                  Search
-                </button>
-              </form>
-              <div className="flex items-center justify-between text-[11px] text-slate-500">
-                <span>
-                  {loading ? 'Loading…' : `Showing ${products.length} of ${total} products`}
-                  {!loading && search && <span> for "{search}"</span>}
-                </span>
-                {totalPages > 1 && (
-                  <div className="inline-flex items-center gap-2">
-                    <button
-                      type="button"
-                      disabled={page === 1}
-                      onClick={() => setPage(Math.max(1, page - 1))}
-                      className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] disabled:opacity-50"
-                    >
-                      Prev
-                    </button>
-                    <span>Page {page} of {totalPages}</span>
-                    <button
-                      type="button"
-                      disabled={page === totalPages}
-                      onClick={() => setPage(Math.min(totalPages, page + 1))}
-                      className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] disabled:opacity-50"
-                    >
-                      Next
-                    </button>
+            {/* Stats row */}
+            <div className="grid gap-4 sm:grid-cols-4">
+              {[
+                { label: 'Total', value: totals.total, color: 'text-slate-900' },
+                { label: 'Published', value: totals.active, color: 'text-emerald-600' },
+                { label: 'Unpublished', value: totals.inactive, color: 'text-slate-500' },
+                { label: 'Low stock', value: totals.lowStock, color: 'text-amber-600' },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="rounded-2xl border border-slate-200 bg-white px-5 py-4">
+                  <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1">{label}</p>
+                  <p className={`text-2xl font-semibold ${color}`}>{loading ? '—' : value}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Search + product grid */}
+            <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+              {/* Card header with search */}
+              <div className="flex items-center justify-between gap-3 px-5 pt-5 pb-4 border-b border-slate-100">
+                <div>
+                  <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-0.5">Inventory</p>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {loading ? 'Loading…' : `${total} product${total === 1 ? '' : 's'}${search ? ` for "${search}"` : ''}`}
+                  </p>
+                </div>
+                <form onSubmit={handleSearchSubmit} className="flex items-center gap-2">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search…"
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                      className="w-44 rounded-full border border-slate-200 bg-slate-50 pl-3 pr-8 py-1.5 text-xs text-slate-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 focus:bg-white transition-colors"
+                    />
+                    {search && (
+                      <button
+                        type="button"
+                        onClick={handleClearSearch}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-[10px]"
+                        aria-label="Clear search"
+                      >
+                        ✕
+                      </button>
+                    )}
                   </div>
-                )}
-              </div>
-            </section>
-
-            {error && (
-              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                {error}
-              </div>
-            )}
-
-            <section className="grid gap-4 md:grid-cols-4">
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 flex flex-col gap-1">
-                <p className="text-[11px] font-medium text-slate-500">Total products</p>
-                <p className="text-xl font-semibold text-slate-900">{loading ? '—' : totals.total}</p>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 flex flex-col gap-1">
-                <p className="text-[11px] font-medium text-slate-500">Active</p>
-                <p className="text-xl font-semibold text-emerald-600">{loading ? '—' : totals.active}</p>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 flex flex-col gap-1">
-                <p className="text-[11px] font-medium text-slate-500">Inactive</p>
-                <p className="text-xl font-semibold text-slate-900">{loading ? '—' : totals.inactive}</p>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 flex flex-col gap-1">
-                <p className="text-[11px] font-medium text-slate-500">Low stock (&lt; 10)</p>
-                <p className="text-xl font-semibold text-amber-600">{loading ? '—' : totals.lowStock}</p>
-              </div>
-            </section>
-
-            <section className="mt-4 rounded-2xl border border-slate-200 bg-white">
-              <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-                <p className="text-xs font-medium text-slate-600">Products</p>
+                  <button
+                    type="submit"
+                    className="inline-flex items-center justify-center rounded-full bg-slate-900 text-white text-xs font-medium px-3 py-1.5 hover:bg-slate-800 transition-colors"
+                  >
+                    Search
+                  </button>
+                </form>
               </div>
 
+              {error && (
+                <div className="mx-5 mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                  {error}
+                </div>
+              )}
+
+              {/* Product grid */}
               {loading ? (
-                <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                  {Array.from({ length: pageSize }).map((_, i) => (
+                <div className="p-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {Array.from({ length: 8 }).map((_, i) => (
                     <SkeletonProductCard key={i} />
                   ))}
                 </div>
               ) : products.length === 0 ? (
-                <div className="px-4 py-6 text-sm text-slate-500">
-                  No products yet. Use "Add product" to create your first item.
+                <div className="px-5 py-12 text-center">
+                  <p className="text-sm font-medium text-slate-500">No products yet</p>
+                  <p className="mt-1 text-xs text-slate-400">Use "Add product" to create your first item.</p>
                 </div>
               ) : (
-                <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                <div className="p-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                   {products.map((product) => {
                     const stock = product.stock ?? 0;
                     const isLowStock = stock > 0 && stock < 10;
-                    const isActive = product.status === 'PUBLISHED' && stock > 0;
+                    const isPublished = product.status === 'PUBLISHED';
+                    const isActive = isPublished && stock > 0;
                     return (
                       <div
                         key={product.id}
-                        className="group rounded-2xl border border-slate-200 bg-white hover:border-amber-300 hover:shadow-sm transition-all flex flex-col overflow-hidden cursor-pointer"
-                        onClick={() => navigate(`/products/${product.id}`)}
+                        className="group rounded-2xl border border-slate-200 bg-white hover:border-slate-300 hover:shadow-md transition-all flex flex-col overflow-hidden cursor-pointer"
+                        onClick={() => navigate(`/products/${product.id}/edit`)}
                         role="button"
                         tabIndex={0}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            navigate(`/products/${product.id}/edit`);
-                          }
+                          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/products/${product.id}/edit`); }
                         }}
                       >
-                        <div className="relative h-28 w-full overflow-hidden bg-slate-50 flex items-center justify-center">
+                        {/* Image */}
+                        <div className="relative h-36 w-full overflow-hidden bg-slate-50">
                           {product.image ? (
-                            <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
+                            <img src={product.image} alt={product.name} className="h-full w-full object-cover group-hover:scale-[1.03] transition-transform duration-300" />
                           ) : (
-                            <span className="text-[10px] text-slate-400">No image</span>
-                          )}
-                        </div>
-                        <div className="flex-1 flex flex-col px-3 py-2 gap-1">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <p className="text-xs font-semibold text-slate-900 truncate">{product.name}</p>
-                              <p className="text-[11px] text-slate-500 truncate">
-                                ₦{product.price?.toFixed?.(2) ?? product.price}
-                              </p>
+                            <div className="h-full w-full flex items-center justify-center">
+                              <svg className="h-8 w-8 text-slate-200" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" aria-hidden="true">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z" />
+                              </svg>
                             </div>
-                          </div>
-                          <div className="mt-1 flex flex-wrap items-center gap-1 text-[10px]">
-                            <span
-                              className={
-                                isActive
-                                  ? 'inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                  : 'inline-flex items-center px-2 py-0.5 rounded-full bg-slate-50 text-slate-600 border border-slate-200'
-                              }
-                            >
-                              {isActive ? 'Active' : 'Not active'}
+                          )}
+                          {/* Status dot */}
+                          <div className="absolute top-2 left-2">
+                            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium border backdrop-blur-sm ${isActive ? 'bg-emerald-50/90 text-emerald-700 border-emerald-200' : 'bg-white/90 text-slate-500 border-slate-200'}`}>
+                              <span className={`h-1.5 w-1.5 rounded-full ${isActive ? 'bg-emerald-400' : 'bg-slate-300'}`} />
+                              {isActive ? 'Live' : 'Off'}
                             </span>
-                            {isLowStock && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                          </div>
+                          {isLowStock && (
+                            <div className="absolute top-2 right-2">
+                              <span className="inline-flex items-center rounded-full bg-amber-50/90 border border-amber-200 px-2 py-0.5 text-[10px] font-medium text-amber-700 backdrop-blur-sm">
                                 Low stock
                               </span>
-                            )}
-                            <span className="text-slate-400">Stock: {stock}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1 flex flex-col px-3 pt-2.5 pb-3 gap-2">
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-slate-900 truncate leading-snug">{product.name}</p>
+                            <div className="flex items-center justify-between mt-0.5">
+                              <p className="text-[11px] text-slate-500">₦{Number(product.price ?? 0).toLocaleString()}</p>
+                              <p className="text-[10px] text-slate-400">{stock} in stock</p>
+                            </div>
                           </div>
-                          <div className="mt-2 flex items-center justify-between gap-2 text-[11px]">
+
+                          {/* Actions */}
+                          <div className="flex items-center gap-1 pt-0.5 border-t border-slate-100">
                             <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); navigate(`/products/${product.id}/edit`); }}
-                              className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-2.5 py-1 hover:border-amber-400 hover:text-amber-800 hover:bg-amber-50"
+                              className="flex-1 inline-flex items-center justify-center rounded-lg py-1.5 text-[11px] font-medium text-slate-600 hover:bg-slate-50 transition-colors"
                             >
                               Edit
                             </button>
+                            <div className="w-px h-4 bg-slate-100" />
                             <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); handleTogglePublish(product); }}
-                              className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-2.5 py-1 hover:border-amber-400 hover:text-amber-800 hover:bg-amber-50"
+                              className={`flex-1 inline-flex items-center justify-center rounded-lg py-1.5 text-[11px] font-medium transition-colors ${isPublished ? 'text-slate-500 hover:bg-slate-50' : 'text-emerald-700 hover:bg-emerald-50'}`}
                             >
-                              {product.status === 'PUBLISHED' ? 'Unpublish' : 'Publish'}
+                              {isPublished ? 'Unpublish' : 'Publish'}
                             </button>
+                            <div className="w-px h-4 bg-slate-100" />
                             <button
                               type="button"
                               onClick={(e) => handleShareProduct(e, product)}
-                              className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-2 py-1 hover:border-emerald-300 hover:text-emerald-800 hover:bg-emerald-50"
+                              className="inline-flex items-center justify-center rounded-lg px-2 py-1.5 text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors"
+                              title="Copy product link"
                             >
-                              <span className="sr-only">Share</span>
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5" aria-hidden="true">
-                                <path d="M15 2.5a.75.75 0 0 0-1.5 0v7.19L6.53 2.72a.75.75 0 0 0-1.06 1.06L12.44 10.75H5.25a.75.75 0 0 0 0 1.5h9a.75.75 0 0 0 .75-.75v-9Z" />
-                                <path d="M4.25 6A2.25 2.25 0 0 0 2 8.25v5.5A2.25 2.25 0 0 0 4.25 16h8.5A2.25 2.25 0 0 0 15 13.75V13a.75.75 0 0 0-1.5 0v.75c0 .414-.336.75-.75.75h-8.5a.75.75 0 0 1-.75-.75v-5.5c0-.414.336-.75.75-.75H6A.75.75 0 0 0 6 6H4.25Z" />
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5" aria-hidden="true">
+                                <path d="M7.75 2a.75.75 0 0 1 .75.75V7h4.25a.75.75 0 0 1 0 1.5H8.5v4.25a.75.75 0 0 1-1.5 0V8.5H2.75a.75.75 0 0 1 0-1.5H7V2.75A.75.75 0 0 1 7.75 2Z" />
                               </svg>
                             </button>
                           </div>
@@ -377,7 +360,30 @@ export default function ProductsPage() {
                   })}
                 </div>
               )}
-            </section>
+
+              {/* Pagination */}
+              {!loading && totalPages > 1 && (
+                <div className="flex items-center justify-between px-5 py-4 border-t border-slate-100">
+                  <button
+                    type="button"
+                    disabled={page === 1}
+                    onClick={() => setPage(Math.max(1, page - 1))}
+                    className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 disabled:opacity-40 hover:border-slate-300 transition-colors"
+                  >
+                    Previous
+                  </button>
+                  <p className="text-xs text-slate-500">Page {page} of {totalPages}</p>
+                  <button
+                    type="button"
+                    disabled={page === totalPages}
+                    onClick={() => setPage(Math.min(totalPages, page + 1))}
+                    className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 disabled:opacity-40 hover:border-slate-300 transition-colors"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </div>
           </>
         )}
       </div>

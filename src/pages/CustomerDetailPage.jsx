@@ -52,22 +52,21 @@ export default function CustomerDetailPage() {
   return (
     <DashboardLayout>
       <div className="max-w-5xl mx-auto space-y-5">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <button
-              type="button"
-              onClick={() => navigate('/customers')}
-              className="mb-1 inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] text-slate-600 hover:border-slate-300 hover:bg-slate-50"
-            >
-              <span className="text-xs">←</span>
-              Back to customers
-            </button>
-            <p className="text-xs text-slate-500">Customer</p>
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-              {customer?.name || customer?.email || 'Customer'}
-            </h1>
-            <p className="mt-1 text-[11px] text-slate-500">Customer profile and orders for this store.</p>
-          </div>
+        <div>
+          <button
+            type="button"
+            onClick={() => navigate('/customers')}
+            className="text-xs text-slate-400 hover:text-slate-600 transition-colors mb-1 flex items-center gap-1"
+          >
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
+              <path d="M10 3L5 8l5 5" />
+            </svg>
+            Customers
+          </button>
+          <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-0.5">Customer</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+            {customer?.name || customer?.email || 'Customer'}
+          </h1>
         </div>
 
         {!currentStoreId && (

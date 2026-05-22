@@ -494,58 +494,69 @@ export default function StorefrontSettingsPage() {
               {/* Preview card */}
               <SectionCard>
                 <SectionHeader label="Preview" title="Storefront" />
-                <div className="p-5">
-                  <div className="rounded-xl border border-slate-200 overflow-hidden">
-                    {/* Banner + logo header */}
-                    <div className="relative h-16 flex items-center px-4 gap-3 bg-slate-100 border-b border-slate-200 overflow-hidden">
-                      {form.bannerImage && (
-                        <img src={form.bannerImage} alt="" className="absolute inset-0 h-full w-full object-cover" aria-hidden="true" />
-                      )}
-                      <div className="relative z-10 h-9 w-9 shrink-0 rounded-xl border border-white/70 bg-white shadow-sm flex items-center justify-center overflow-hidden">
-                        {form.logo ? (
-                          <img src={form.logo} alt="" className="h-full w-full object-contain" />
-                        ) : (
-                          <span className="text-[9px] text-slate-400">Logo</span>
-                        )}
-                      </div>
-                      <div className="relative z-10 min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-slate-900 truncate drop-shadow-sm">{form.name || currentStore.name}</p>
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <p className="text-[10px] text-slate-600 truncate max-w-32">{storefrontUrl}</p>
-                          {storefrontUrl && (
-                            <button
-                              type="button"
-                              onClick={handleCopyStorefrontUrl}
-                              className="shrink-0 inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 bg-white text-[9px] text-slate-400 hover:border-emerald-300 hover:text-emerald-600 transition-colors"
-                              aria-label="Copy store link"
-                            >
-                              ⧉
-                            </button>
+                <div className="p-5 space-y-3">
+                  {/* Dark hero — matches actual StorefrontHeader */}
+                  <div
+                    className="rounded-2xl overflow-hidden border border-slate-800"
+                    style={{
+                      background: form.bannerImage
+                        ? `linear-gradient(to bottom, rgba(15,23,42,0.45), rgba(15,23,42,0.88)), url(${form.bannerImage}) center/cover no-repeat`
+                        : `linear-gradient(135deg, ${form.brandColor || '#111827'}28 0%, #0f172a 100%)`,
+                      backgroundColor: '#0f172a',
+                    }}
+                  >
+                    <div className="px-4 pt-4 pb-3 space-y-3">
+                      {/* Logo + name row */}
+                      <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 shrink-0 rounded-xl border border-slate-700/70 bg-slate-900/80 flex items-center justify-center overflow-hidden">
+                          {form.logo ? (
+                            <img src={form.logo} alt="" className="h-full w-full object-contain" />
+                          ) : (
+                            <span className="text-base font-semibold text-slate-300">
+                              {(form.name || currentStore.name)?.[0]?.toUpperCase() ?? 'S'}
+                            </span>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[9px] uppercase tracking-[0.2em] text-slate-400 mb-0.5">Curated by</p>
+                          <p className="text-sm font-semibold text-white truncate">{form.name || currentStore.name}</p>
+                          {form.description && (
+                            <p className="text-[10px] text-slate-300/80 mt-0.5 line-clamp-1">{form.description}</p>
                           )}
                         </div>
                       </div>
-                    </div>
-                    {/* Description + colors */}
-                    <div className="p-4 bg-white space-y-3">
-                      <p className="text-[12px] text-slate-600 leading-relaxed line-clamp-2">
-                        {form.description || 'Your store description will appear here.'}
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border"
-                          style={{ backgroundColor: form.brandColor || '#111827', borderColor: form.brandColor || '#111827', color: '#f9fafb' }}
-                        >
-                          Primary
-                        </span>
-                        <span
-                          className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border"
-                          style={{ backgroundColor: form.brandAccentColor || '#F97316', borderColor: form.brandAccentColor || '#F97316', color: '#111827' }}
-                        >
-                          Accent
-                        </span>
+                      {/* Bottom row */}
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-[9px] text-slate-500 truncate max-w-32">{storefrontUrl}</p>
+                        <div className="inline-flex items-center gap-1.5 rounded-full border border-slate-700/60 bg-slate-900/60 px-2 py-0.5">
+                          <span
+                            className="h-1 w-4 rounded-full"
+                            style={{ backgroundImage: `linear-gradient(90deg, ${form.brandAccentColor || '#F97316'}, ${form.brandColor || '#111827'})` }}
+                          />
+                          <span className="text-[8px] uppercase tracking-wider text-slate-400 font-medium">Vendli</span>
+                        </div>
                       </div>
                     </div>
+                    {/* Brand color strip */}
+                    <div
+                      className="h-1 w-full"
+                      style={{ backgroundImage: `linear-gradient(90deg, ${form.brandColor || '#111827'}, ${form.brandAccentColor || '#F97316'})` }}
+                    />
                   </div>
+
+                  {/* Storefront URL row */}
+                  {storefrontUrl && (
+                    <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                      <p className="flex-1 text-[11px] text-slate-500 truncate">{storefrontUrl}</p>
+                      <button
+                        type="button"
+                        onClick={handleCopyStorefrontUrl}
+                        className="shrink-0 text-[10px] font-semibold text-amber-700 hover:text-amber-900 transition-colors"
+                      >
+                        Copy link
+                      </button>
+                    </div>
+                  )}
                 </div>
               </SectionCard>
 

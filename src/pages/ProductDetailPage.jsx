@@ -76,20 +76,32 @@ export default function ProductDetailPage() {
 
   return (
     <DashboardLayout>
-      <div className="px-4 sm:px-6 py-6 max-w-5xl mx-auto space-y-6">
-        <div className="flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={() => navigate('/products')}
-            className="text-xs text-slate-500 hover:text-slate-700"
-          >
-            ← Back to products
-          </button>
-          <div className="flex items-center gap-2 text-[11px] text-slate-500">
+      <div className="max-w-5xl mx-auto space-y-6">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <button
+              type="button"
+              onClick={() => navigate('/products')}
+              className="text-xs text-slate-400 hover:text-slate-600 transition-colors mb-1 flex items-center gap-1"
+            >
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
+                <path d="M10 3L5 8l5 5" />
+              </svg>
+              Products
+            </button>
+            <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-0.5">Product</p>
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+              {product?.name || 'Product details'}
+            </h1>
+            {product?.slug && (
+              <p className="text-[11px] text-slate-500 mt-0.5">/{product.slug}</p>
+            )}
+          </div>
+          <div className="flex items-center gap-2 shrink-0 pt-6">
             <button
               type="button"
               onClick={() => navigate(`/products/${productId}/edit`)}
-              className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-medium hover:border-amber-400 hover:bg-amber-50 hover:text-amber-800 disabled:opacity-60"
+              className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-medium hover:border-amber-400 hover:bg-amber-50 hover:text-amber-800 disabled:opacity-60 transition-colors"
               disabled={!product}
             >
               Edit product
@@ -97,21 +109,12 @@ export default function ProductDetailPage() {
             <button
               type="button"
               onClick={() => setConfirmArchive(true)}
-              className="inline-flex items-center justify-center rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-[11px] font-medium text-rose-700 hover:bg-rose-100 disabled:opacity-60"
+              className="inline-flex items-center justify-center rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-[11px] font-medium text-rose-700 hover:bg-rose-100 disabled:opacity-60 transition-colors"
               disabled={!product || archiving}
             >
               Archive
             </button>
           </div>
-        </div>
-
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-            {product?.name || 'Product details'}
-          </h1>
-          {product?.slug && (
-            <p className="text-[11px] text-slate-500 mt-0.5">Slug: {product.slug}</p>
-          )}
         </div>
 
         {error && (

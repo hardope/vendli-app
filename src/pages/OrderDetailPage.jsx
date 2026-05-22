@@ -97,18 +97,19 @@ export default function OrderDetailPage() {
   return (
     <DashboardLayout>
       <div className="max-w-5xl mx-auto space-y-6">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs text-slate-500">Orders</p>
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Order details</h1>
-          </div>
+        <div>
           <button
             type="button"
             onClick={() => navigate('/orders')}
-            className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+            className="text-xs text-slate-400 hover:text-slate-600 transition-colors mb-1 flex items-center gap-1"
           >
-            Back to orders
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
+              <path d="M10 3L5 8l5 5" />
+            </svg>
+            Orders
           </button>
+          <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-0.5">Order</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Order details</h1>
         </div>
 
         {!currentStoreId && (
@@ -163,13 +164,13 @@ export default function OrderDetailPage() {
                   </div>
 
                   <div className="mt-3 flex flex-wrap gap-4 text-xs text-slate-600">
-                    <div className="flex-1 min-w-[200px]">
+                    <div className="flex-1 min-w-50">
                       <p className="text-[11px] font-semibold text-slate-500 uppercase mb-1">Customer</p>
                       <p className="text-sm text-slate-900">{customer.name || customer.email || 'Guest'}</p>
                       {customer.email && <p className="mt-0.5">{customer.email}</p>}
                       {customer.phone && <p className="mt-0.5">{customer.phone}</p>}
                     </div>
-                    <div className="flex-1 min-w-[200px]">
+                    <div className="flex-1 min-w-50">
                       <p className="text-[11px] font-semibold text-slate-500 uppercase mb-1">Delivery</p>
                       {delivery.deliveryAddress && <p className="mt-0.5">{delivery.deliveryAddress}</p>}
                       {delivery.deliveryLocation && <p className="mt-0.5">{delivery.deliveryLocation}</p>}
