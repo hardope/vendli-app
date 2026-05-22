@@ -9,6 +9,26 @@ import Notify from '../components/Notify.js';
 import BrandColorPicker from '../components/BrandColorPicker.jsx';
 import PhoneNumberInput from '../components/PhoneNumberInput.jsx';
 
+function SectionCard({ children, className = '' }) {
+  return (
+    <div className={`rounded-2xl border border-slate-200 bg-white overflow-hidden ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+function SectionHeader({ label, title, action }) {
+  return (
+    <div className="flex items-start justify-between gap-4 px-5 pt-5 pb-4 border-b border-slate-100">
+      <div>
+        <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-0.5">{label}</p>
+        <p className="text-sm font-semibold text-slate-800">{title}</p>
+      </div>
+      {action}
+    </div>
+  );
+}
+
 export default function StorefrontSettingsPage() {
   const { stores, currentStoreId, setCurrentStoreId, setStores } = useStoreStore();
 
@@ -218,378 +238,318 @@ export default function StorefrontSettingsPage() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="max-w-5xl mx-auto space-y-6">
+        {/* Page header */}
         <div>
-          <p className="text-xs text-slate-500">Storefront</p>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Storefront settings</h1>
-          <p className="mt-2 text-sm text-slate-600">
-            Update how your store appears to buyers. Changes affect your live storefront, so we ask you to confirm before
-            saving.
+          <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-0.5">Storefront</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Settings</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Manage how your store appears to buyers. Changes go live after you save and confirm.
           </p>
         </div>
 
         {!currentStore && (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-            Pick or create a store from the sidebar first to manage its storefront settings.
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-4 text-sm text-slate-500">
+            Pick or create a store from the sidebar first to manage its settings.
           </div>
         )}
 
         {currentStore && (
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)] items-start">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.72fr)] items-start">
+
+            {/* ── Left column: form ── */}
             <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
-                <div className="flex items-center justify-between gap-3 text-[11px]">
-                  <div className="space-y-0.5">
-                    <p className="text-[10px] uppercase tracking-wide text-slate-500">Store status</p>
-                    <span
-                      className={
-                        currentStore.isActive !== false
-                          ? 'inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : 'inline-flex items-center px-2 py-0.5 rounded-full bg-slate-50 text-slate-600 border border-slate-200'
-                      }
-                    >
-                      {currentStore.isActive !== false ? 'Active' : 'Inactive'}
-                    </span>
+
+              {/* Identity card */}
+              <SectionCard>
+                <SectionHeader label="Store" title="Identity & branding" />
+                <div className="p-5 space-y-5">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1.5" htmlFor="name">Store name</label>
+                      <input
+                        id="name" name="name" type="text"
+                        value={form.name} onChange={handleChange}
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 focus:bg-white transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1.5" htmlFor="description">Short description</label>
+                      <textarea
+                        id="description" name="description" rows={3}
+                        value={form.description} onChange={handleChange}
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 focus:bg-white transition-colors resize-none"
+                      />
+                    </div>
                   </div>
-                  <div className="flex flex-col items-end gap-1">
-                    {confirmingStatus && (
-                      <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[10px] text-amber-900 max-w-xs">
-                        <p className="font-semibold mb-1">
-                          {confirmingStatus === 'deactivate' ? 'Deactivate store?' : 'Activate store?'}
-                        </p>
-                        <p className="mb-2">
-                          {confirmingStatus === 'deactivate'
-                            ? 'Buyers will no longer be able to view or order from this storefront until you activate it again.'
-                            : 'This store will become visible to buyers again on your storefront URL.'}
-                        </p>
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={handleCancelToggleStatus}
-                            className="text-[10px] text-amber-700 hover:text-amber-900"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleConfirmToggleStatus}
-                            disabled={togglingStatus}
-                            className="inline-flex items-center justify-center rounded-full bg-red-500 text-white px-3 py-1 text-[10px] font-medium hover:bg-red-600 disabled:opacity-60"
-                          >
-                            {togglingStatus
-                              ? 'Updating…'
-                              : confirmingStatus === 'deactivate'
-                                ? 'Yes, deactivate'
-                                : 'Yes, activate'}
-                          </button>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <BrandColorPicker
+                      id="brandColor" label="Brand color"
+                      value={form.brandColor} defaultSwatch="#111827"
+                      onChange={(hex) => setForm((prev) => ({ ...prev, brandColor: hex }))}
+                    />
+                    <BrandColorPicker
+                      id="brandAccentColor" label="Accent color"
+                      value={form.brandAccentColor} defaultSwatch="#F97316"
+                      onChange={(hex) => setForm((prev) => ({ ...prev, brandAccentColor: hex }))}
+                    />
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {/* Logo upload zone */}
+                    <div>
+                      <p className="text-xs font-medium text-slate-500 mb-1.5">Logo</p>
+                      <label className={`flex items-center gap-3 rounded-xl border-2 border-dashed px-3 py-3 cursor-pointer transition-colors ${uploadingLogo ? 'border-slate-200 bg-slate-50 opacity-60' : 'border-slate-200 bg-slate-50 hover:border-amber-300 hover:bg-amber-50/40'}`}>
+                        <div className="h-11 w-11 shrink-0 rounded-xl border border-slate-200 bg-white flex items-center justify-center overflow-hidden">
+                          {form.logo ? (
+                            <img src={form.logo} alt="Logo" className="h-full w-full object-cover" />
+                          ) : (
+                            <svg className="h-5 w-5 text-slate-300" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" aria-hidden="true">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z" />
+                            </svg>
+                          )}
                         </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium text-slate-700">
+                            {uploadingLogo ? 'Uploading…' : form.logo ? 'Change logo' : 'Upload logo'}
+                          </p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">PNG, JPG or SVG · Square</p>
+                        </div>
+                        <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={uploadingLogo} />
+                      </label>
+                    </div>
+
+                    {/* Banner upload zone */}
+                    <div>
+                      <p className="text-xs font-medium text-slate-500 mb-1.5">Banner image</p>
+                      <label className={`flex items-center gap-3 rounded-xl border-2 border-dashed px-3 py-3 cursor-pointer transition-colors ${uploadingBanner ? 'border-slate-200 bg-slate-50 opacity-60' : 'border-slate-200 bg-slate-50 hover:border-amber-300 hover:bg-amber-50/40'}`}>
+                        <div className="h-11 w-20 shrink-0 rounded-xl border border-slate-200 bg-white flex items-center justify-center overflow-hidden">
+                          {form.bannerImage ? (
+                            <img src={form.bannerImage} alt="Banner" className="h-full w-full object-cover" />
+                          ) : (
+                            <svg className="h-5 w-5 text-slate-300" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" aria-hidden="true">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z" />
+                            </svg>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium text-slate-700">
+                            {uploadingBanner ? 'Uploading…' : form.bannerImage ? 'Change banner' : 'Upload banner'}
+                          </p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">PNG or JPG · Wide format</p>
+                        </div>
+                        <input type="file" accept="image/*" className="hidden" onChange={handleBannerUpload} disabled={uploadingBanner} />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </SectionCard>
+
+              {/* Contact card */}
+              <SectionCard>
+                <SectionHeader label="Visibility" title="Contact & location" />
+                <div className="p-5 space-y-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1.5" htmlFor="contactEmail">Contact email</label>
+                      <input
+                        id="contactEmail" name="contactEmail" type="email"
+                        value={form.contactEmail} onChange={handleChange}
+                        placeholder="support@yourstore.com"
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 focus:bg-white transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1.5">WhatsApp number</label>
+                      <div className="flex gap-2">
+                        <div className="relative w-20 shrink-0">
+                          <span className="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-[11px] text-slate-400">+</span>
+                          <PhoneNumberInput
+                            id="contactWhatsappCountryCode" name="contactWhatsappCountryCode" segment="countryCode"
+                            value={form.contactWhatsappCountryCode}
+                            onChange={(nextValue) => setForm((prev) => ({ ...prev, contactWhatsappCountryCode: nextValue }))}
+                            placeholder="234"
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-6 pr-2 py-2.5 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 focus:bg-white transition-colors"
+                          />
+                        </div>
+                        <PhoneNumberInput
+                          id="contactWhatsappLocal" name="contactWhatsappLocal" segment="local"
+                          value={form.contactWhatsappLocal}
+                          onChange={(nextValue) => setForm((prev) => ({ ...prev, contactWhatsappLocal: nextValue }))}
+                          placeholder="8012345678"
+                          className="flex-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 focus:bg-white transition-colors"
+                        />
                       </div>
-                    )}
-                    {!confirmingStatus && (
+                      <p className="mt-1 text-[10px] text-slate-400">Shown to buyers on your live storefront.</p>
+                    </div>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1.5" htmlFor="contactLocation">Location</label>
+                      <input
+                        id="contactLocation" name="contactLocation" type="text"
+                        value={form.contactLocation} onChange={handleChange}
+                        placeholder="Lagos, Nigeria"
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 focus:bg-white transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1.5" htmlFor="contactAddress">Address</label>
+                      <textarea
+                        id="contactAddress" name="contactAddress" rows={2}
+                        value={form.contactAddress} onChange={handleChange}
+                        placeholder="Street, area, city"
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 focus:bg-white transition-colors resize-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </SectionCard>
+
+              {/* Save actions */}
+              <div className="space-y-3">
+                {confirming && (
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5">
+                    <p className="text-sm font-semibold text-amber-900 mb-0.5">Confirm changes to {currentStore.name}</p>
+                    <p className="text-[13px] text-amber-800">These changes will update your live storefront immediately.</p>
+                  </div>
+                )}
+                <div className="flex items-center gap-3">
+                  <button
+                    type="submit"
+                    disabled={saving || loading}
+                    className="inline-flex items-center justify-center rounded-full bg-slate-900 text-white text-sm font-semibold px-5 py-2.5 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {saving ? 'Saving…' : confirming ? 'Confirm and save' : 'Save changes'}
+                  </button>
+                  {confirming && (
+                    <button type="button" onClick={handleCancelConfirm} className="text-sm text-slate-500 hover:text-slate-700 transition-colors">
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </div>
+            </form>
+
+            {/* ── Right column: status + preview ── */}
+            <div className="space-y-5">
+
+              {/* Status card */}
+              <SectionCard>
+                <SectionHeader
+                  label="Store"
+                  title="Visibility"
+                  action={
+                    !confirmingStatus ? (
                       <button
                         type="button"
                         onClick={() => handleRequestToggleStatus(currentStore.isActive !== false ? 'deactivate' : 'activate')}
                         disabled={togglingStatus}
-                        className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-medium hover:border-amber-400 hover:bg-amber-50 disabled:opacity-60"
+                        className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-slate-300 hover:bg-slate-100 disabled:opacity-50 transition-colors"
                       >
-                        {togglingStatus
-                          ? 'Updating…'
-                          : currentStore.isActive !== false
-                            ? 'Deactivate store'
-                            : 'Activate store'}
+                        {togglingStatus ? 'Updating…' : currentStore.isActive !== false ? 'Deactivate' : 'Activate'}
                       </button>
-                    )}
-                  </div>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1" htmlFor="name">
-                      Store name
-                    </label>
-                    <input
-                      id="name"
-                      name="name"
-                      type="text"
-                      value={form.name}
-                      onChange={handleChange}
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1" htmlFor="description">
-                      Short description
-                    </label>
-                    <textarea
-                      id="description"
-                      name="description"
-                      rows={3}
-                      value={form.description}
-                      onChange={handleChange}
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 resize-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <BrandColorPicker
-                      id="brandColor"
-                      label="Brand color (primary)"
-                      value={form.brandColor}
-                      defaultSwatch="#111827"
-                      onChange={(hex) => setForm((prev) => ({ ...prev, brandColor: hex }))}
-                    />
-                  </div>
-                  <div>
-                    <BrandColorPicker
-                      id="brandAccentColor"
-                      label="Accent color"
-                      value={form.brandAccentColor}
-                      defaultSwatch="#F97316"
-                      onChange={(hex) => setForm((prev) => ({ ...prev, brandAccentColor: hex }))}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">Logo</label>
-                    <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 rounded-xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden">
-                        {form.logo ? (
-                          <img src={form.logo} alt="Logo" className="h-full w-full object-cover" />
-                        ) : (
-                          <span className="text-[10px] text-slate-400">No logo</span>
-                        )}
-                      </div>
-                      <label className="text-[11px] text-amber-700 cursor-pointer inline-flex items-center gap-1">
-                        <span>Upload logo</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleLogoUpload}
-                          disabled={uploadingLogo}
-                        />
-                      </label>
-                      {uploadingLogo && (
-                        <p className="text-[10px] text-slate-500 animate-pulse">Uploading logo…</p>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">Banner image</label>
-                    <div className="flex items-center gap-3">
-                      <div className="h-12 w-24 rounded-xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden">
-                        {form.bannerImage ? (
-                          <img src={form.bannerImage} alt="Banner" className="h-full w-full object-cover" />
-                        ) : (
-                          <span className="text-[10px] text-slate-400">No banner</span>
-                        )}
-                      </div>
-                      <label className="text-[11px] text-amber-700 cursor-pointer inline-flex items-center gap-1">
-                        <span>Upload banner</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleBannerUpload}
-                          disabled={uploadingBanner}
-                        />
-                      </label>
-                      {uploadingBanner && (
-                        <p className="text-[10px] text-slate-500 animate-pulse">Uploading banner…</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
-                <p className="text-xs font-medium text-slate-600">Contact details</p>
-                <p className="text-[11px] text-slate-500 mb-2">
-                  These details show on your public storefront so buyers can reach you.
-                </p>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1" htmlFor="contactEmail">
-                      Contact email
-                    </label>
-                    <input
-                      id="contactEmail"
-                      name="contactEmail"
-                      type="email"
-                      value={form.contactEmail}
-                      onChange={handleChange}
-                      placeholder="support@yourstore.com"
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1" htmlFor="contactWhatsapp">
-                      WhatsApp number
-                    </label>
-                    <div className="flex gap-2">
-                      <div className="w-16">
-                        <div className="relative">
-                          <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-[11px] text-slate-500">
-                            +
-                          </span>
-                            <PhoneNumberInput
-                            id="contactWhatsappCountryCode"
-                            name="contactWhatsappCountryCode"
-                              segment="countryCode"
-                            value={form.contactWhatsappCountryCode}
-                              onChange={(nextValue) =>
-                                setForm((prev) => ({ ...prev, contactWhatsappCountryCode: nextValue }))
-                              }
-                            placeholder="234"
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-5 pr-2 py-2 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
-                          />
-                        </div>
-                        <p className="mt-1 text-[10px] text-slate-500">Code</p>
-                      </div>
-                      <div className="flex-1">
-                        <PhoneNumberInput
-                          id="contactWhatsappLocal"
-                          name="contactWhatsappLocal"
-                          segment="local"
-                          value={form.contactWhatsappLocal}
-                          onChange={(nextValue) =>
-                            setForm((prev) => ({ ...prev, contactWhatsappLocal: nextValue }))
-                          }
-                          placeholder="8012345678"
-                          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
-                        />
-                      </div>
-                    </div>
-                    <p className="mt-1 text-[10px] text-slate-500">
-                      This is what buyers see on your live storefront.
-                    </p>
-                  </div>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1" htmlFor="contactLocation">
-                      Location
-                    </label>
-                    <input
-                      id="contactLocation"
-                      name="contactLocation"
-                      type="text"
-                      value={form.contactLocation}
-                      onChange={handleChange}
-                      placeholder="Lagos, Nigeria"
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1" htmlFor="contactAddress">
-                      Address
-                    </label>
-                    <textarea
-                      id="contactAddress"
-                      name="contactAddress"
-                      rows={2}
-                      value={form.contactAddress}
-                      onChange={handleChange}
-                      placeholder="Street, area, city"
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-3">
-                {confirming && (
-                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-[11px] text-amber-900 flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-semibold mb-1">Confirm storefront update</p>
-                      <p>
-                        These changes will update your live storefront. Please confirm you want to apply them to
-                        <span className="font-semibold"> {currentStore.name}</span>.
+                    ) : null
+                  }
+                />
+                <div className="p-5 space-y-3">
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${currentStore.isActive !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 text-slate-500 border border-slate-200'}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${currentStore.isActive !== false ? 'bg-emerald-400' : 'bg-slate-300'}`} />
+                    {currentStore.isActive !== false ? 'Active' : 'Inactive'}
+                  </span>
+                  <p className="text-[12px] text-slate-500 leading-relaxed">
+                    {currentStore.isActive !== false
+                      ? 'Your storefront is live. Buyers can view your products and place orders.'
+                      : 'Your storefront is hidden. Activate it to start receiving orders.'}
+                  </p>
+                  {confirmingStatus && (
+                    <div className="rounded-xl border border-rose-100 bg-rose-50 p-3.5 space-y-2.5">
+                      <p className="text-xs font-semibold text-rose-900">
+                        {confirmingStatus === 'deactivate' ? 'Deactivate this store?' : 'Activate this store?'}
                       </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleCancelConfirm}
-                      className="text-[11px] text-amber-700 hover:text-amber-900"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={saving || loading}
-                  className="inline-flex items-center justify-center rounded-full bg-amber-400 text-slate-950 text-xs font-semibold px-4 py-2 hover:bg-amber-300 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-                >
-                  {confirming ? 'Confirm save changes' : 'Save changes'}
-                </button>
-              </div>
-            </form>
-
-            <aside className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3 text-sm text-slate-700">
-              <p className="text-xs font-medium text-slate-500 mb-1">Live storefront preview</p>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 overflow-hidden">
-                <div
-                  className="h-16 w-full flex items-center px-4 gap-3 border-b border-slate-200"
-                  style={{ background: form.bannerImage ? undefined : '#f8fafc' }}
-                >
-                  <div className="h-10 w-10 rounded-lg border border-slate-200 bg-white overflow-hidden flex items-center justify-center">
-                    {form.logo ? (
-                      <img src={form.logo} alt="Logo preview" className="h-full w-full object-contain" />
-                    ) : (
-                      <span className="text-[10px] text-slate-400">Logo</span>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-slate-900 truncate">{form.name || currentStore.name}</p>
-                    <div className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[11px] text-slate-600 max-w-full">
-                      <span className="truncate max-w-[9rem]">{storefrontUrl}</span>
-                      {storefrontUrl && (
+                      <p className="text-[11px] text-rose-700 leading-relaxed">
+                        {confirmingStatus === 'deactivate'
+                          ? 'Buyers will not be able to view or order from this storefront until you reactivate it.'
+                          : 'This store will become visible to buyers on your storefront URL.'}
+                      </p>
+                      <div className="flex items-center gap-2 pt-0.5">
                         <button
                           type="button"
-                          onClick={handleCopyStorefrontUrl}
-                          className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-200 bg-white text-[10px] text-slate-500 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 flex-shrink-0"
-                          aria-label="Copy store link"
+                          onClick={handleConfirmToggleStatus}
+                          disabled={togglingStatus}
+                          className="inline-flex items-center justify-center rounded-full bg-rose-500 text-white px-3 py-1.5 text-xs font-semibold hover:bg-rose-600 disabled:opacity-60 transition-colors"
                         >
-                          ⧉
+                          {togglingStatus ? 'Updating…' : confirmingStatus === 'deactivate' ? 'Yes, deactivate' : 'Yes, activate'}
                         </button>
+                        <button type="button" onClick={handleCancelToggleStatus} className="text-xs text-slate-500 hover:text-slate-700 transition-colors">
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </SectionCard>
+
+              {/* Preview card */}
+              <SectionCard>
+                <SectionHeader label="Preview" title="Storefront" />
+                <div className="p-5">
+                  <div className="rounded-xl border border-slate-200 overflow-hidden">
+                    {/* Banner + logo header */}
+                    <div className="relative h-16 flex items-center px-4 gap-3 bg-slate-100 border-b border-slate-200 overflow-hidden">
+                      {form.bannerImage && (
+                        <img src={form.bannerImage} alt="" className="absolute inset-0 h-full w-full object-cover" aria-hidden="true" />
                       )}
+                      <div className="relative z-10 h-9 w-9 shrink-0 rounded-xl border border-white/70 bg-white shadow-sm flex items-center justify-center overflow-hidden">
+                        {form.logo ? (
+                          <img src={form.logo} alt="" className="h-full w-full object-contain" />
+                        ) : (
+                          <span className="text-[9px] text-slate-400">Logo</span>
+                        )}
+                      </div>
+                      <div className="relative z-10 min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-slate-900 truncate drop-shadow-sm">{form.name || currentStore.name}</p>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <p className="text-[10px] text-slate-600 truncate max-w-32">{storefrontUrl}</p>
+                          {storefrontUrl && (
+                            <button
+                              type="button"
+                              onClick={handleCopyStorefrontUrl}
+                              className="shrink-0 inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 bg-white text-[9px] text-slate-400 hover:border-emerald-300 hover:text-emerald-600 transition-colors"
+                              aria-label="Copy store link"
+                            >
+                              ⧉
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    {/* Description + colors */}
+                    <div className="p-4 bg-white space-y-3">
+                      <p className="text-[12px] text-slate-600 leading-relaxed line-clamp-2">
+                        {form.description || 'Your store description will appear here.'}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border"
+                          style={{ backgroundColor: form.brandColor || '#111827', borderColor: form.brandColor || '#111827', color: '#f9fafb' }}
+                        >
+                          Primary
+                        </span>
+                        <span
+                          className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border"
+                          style={{ backgroundColor: form.brandAccentColor || '#F97316', borderColor: form.brandAccentColor || '#F97316', color: '#111827' }}
+                        >
+                          Accent
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div className="p-4 space-y-2">
-                  <p className="text-[12px] text-slate-600 line-clamp-2">
-                    {form.description || 'Your store description will show here.'}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span
-                      className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] border"
-                      style={{
-                        backgroundColor: form.brandColor || '#111827',
-                        borderColor: form.brandColor || '#111827',
-                        color: '#f9fafb',
-                      }}
-                    >
-                      Primary
-                    </span>
-                    <span
-                      className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] border"
-                      style={{
-                        backgroundColor: form.brandAccentColor || '#F97316',
-                        borderColor: form.brandAccentColor || '#F97316',
-                        color: '#111827',
-                      }}
-                    >
-                      Accent
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </aside>
+              </SectionCard>
+
+            </div>
           </div>
         )}
       </div>
