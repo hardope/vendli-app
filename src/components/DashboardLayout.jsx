@@ -7,6 +7,8 @@ import { useAuthStore } from '../store/auth.store.js';
 import { useStoreStore } from '../store/store.store.js';
 import { useWalletStore } from '../store/wallet.store.js';
 import Loader from './Loader.jsx';
+import { InstallBanner } from './InstallBanner.jsx';
+import { usePWAInstall } from '../hooks/usePWAInstall.js';
 import { fetchMyStores } from '../services/store.service.js';
 
 function DashboardWalletBadge({ onClick }) {
@@ -34,6 +36,7 @@ function classNames(...values) {
 }
 
 export default function DashboardLayout({ children }) {
+  const { showBanner, ios, install, dismiss } = usePWAInstall();
   const navigate = useNavigate();
   const location = useLocation();
   const signOut = useAuthStore((s) => s.signOut);
@@ -525,8 +528,14 @@ export default function DashboardLayout({ children }) {
           </div>
         </header>
 
-        <main className="flex-1 min-h-0 bg-slate-50 px-4 sm:px-6 py-6 overflow-y-auto">{children}</main>
+        <main className={`flex-1 min-h-0 bg-slate-50 px-4 sm:px-6 py-6 overflow-y-auto ${showBanner ? 'pb-20' : ''}`}>
+          {children}
+        </main>
       </div>
+
+      {showBanner && (
+        <InstallBanner ios={ios} onInstall={install} onDismiss={dismiss} />
+      )}
     </div>
   );
 }
