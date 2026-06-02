@@ -281,11 +281,11 @@ export default function ProductsPage() {
                       <div
                         key={product.id}
                         className="group rounded-2xl border border-slate-200 bg-white hover:border-slate-300 hover:shadow-md transition-all flex flex-col overflow-hidden cursor-pointer"
-                        onClick={() => navigate(`/products/${product.id}/edit`)}
+                        onClick={() => navigate(`/products/${product.id}`)}
                         role="button"
                         tabIndex={0}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/products/${product.id}/edit`); }
+                          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/products/${product.id}`); }
                         }}
                       >
                         {/* Image */}
